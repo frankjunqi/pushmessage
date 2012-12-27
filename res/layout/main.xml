@@ -43,20 +43,20 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dip"
-            android:text="initPush" />
+            android:text="@string/initpush" />
         
           <Button
             android:id="@+id/stopPush"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dip"
-            android:text="stopPush" />
+            android:text="@string/stoppush" />
             <Button
             android:id="@+id/resumePush"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dip"
-            android:text="resumePush" />
+            android:text="@string/resumepush" />
             
              
        
@@ -67,5 +67,5 @@
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
             
-            android:text="高级功能" /> 
+            android:text="@string/adv" /> 
 </RelativeLayout>

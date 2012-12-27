@@ -61,6 +61,7 @@ public final class R {
         public static final int set_push_time=0x7f030004;
     }
     public static final class string {
+        public static final int adv=0x7f04000f;
         public static final int alias_hint=0x7f040003;
         public static final int app_name=0x7f040001;
         public static final int error_alias_empty=0x7f040006;
@@ -69,8 +70,11 @@ public final class R {
         public static final int error_tag_empty=0x7f040007;
         public static final int error_tag_gs_empty=0x7f040008;
         public static final int hello=0x7f040000;
+        public static final int initpush=0x7f04000c;
         public static final int logining=0x7f04000a;
+        public static final int resumepush=0x7f04000e;
         public static final int setting_su=0x7f04000b;
+        public static final int stoppush=0x7f04000d;
         public static final int style_hint=0x7f040004;
         public static final int tag_hint=0x7f040002;
     }
