@@ -15,5 +15,7 @@
 	<string name="initpush">开启</string>
     <string name="stoppush">停止</string>
     <string name="resumepush">暂停</string>
-    <string name="adv">高级</string>     
+    <string name="adv">高级</string>
+     <string name="sinaweibo">绑定新浪微博</string>    
+ 
 </resources>

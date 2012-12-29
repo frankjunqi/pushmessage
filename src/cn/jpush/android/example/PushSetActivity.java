@@ -7,6 +7,7 @@ import java.util.Set;
 import android.app.Activity;
 import android.app.Notification;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.KeyEvent;
@@ -51,8 +52,7 @@ public class PushSetActivity extends Activity implements OnClickListener{
 		mStyleCustom.setOnClickListener(this);
 		mSetPushTime.setOnClickListener(this);
 	}
-	
-	@Override
+
 	public void onClick(View v) {
 		switch (v.getId()) {
 		case R.id.bt_tag:
@@ -89,6 +89,8 @@ public class PushSetActivity extends Activity implements OnClickListener{
 		// ","隔开的多个 转换成 Set
 		String[] sArray = tag.split(",");
 		Set<String> tagSet = new HashSet<String>();
+		tagSet.add("all");
+		tagSet.add("android");
 		for (String sTagItme : sArray) {
 			if (!ExampleUtil.isValidTagAndAlias(sTagItme)) {
 				Toast.makeText(PushSetActivity.this,R.string.error_tag_gs_empty, Toast.LENGTH_SHORT).show();
@@ -97,6 +99,12 @@ public class PushSetActivity extends Activity implements OnClickListener{
 			tagSet.add(sTagItme);
 		}
 		
+		
+		
+		SharedPreferences preferences = getSharedPreferences("mypush", MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("tagName", tag);
+        editor.commit();
 		//调用JPush API设置Tag
 		JPushInterface.setAliasAndTags(getApplicationContext(), null, tagSet);
 		

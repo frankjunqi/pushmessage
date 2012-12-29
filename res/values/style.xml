@@ -13,4 +13,9 @@
 		<item name="android:hint">@string/tag_hint</item>
 		<item name="android:textSize">14sp</item>
 	</style>
+
+	<style name="test" parent="android:Theme"> 
+	    <item name="android:windowTitleSize">30dp</item> 
+	  	 
+	</style>
 </resources>

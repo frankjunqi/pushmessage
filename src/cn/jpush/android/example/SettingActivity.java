@@ -84,7 +84,6 @@ public class SettingActivity extends Activity implements OnClickListener {
 	  endTime.setCurrentHour(Integer.valueOf(endTimeStr));
    }
 
-	@Override
 	public void onClick(View v) {
 		switch (v.getId()) {
 		case R.id.bu_setTime:

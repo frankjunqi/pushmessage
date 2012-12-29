@@ -26,7 +26,6 @@ import android.text.Html.ImageGetter;
 
 public class TestActivity extends Activity {
 	ImageGetter imgGetter = new Html.ImageGetter() {
-		@Override
 		public Drawable getDrawable(String source) {
 			Drawable drawable = null;
 			drawable = Drawable.createFromPath(source);
@@ -37,16 +36,19 @@ public class TestActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Bundle extra = new Bundle();  
+        extra = getIntent().getExtras();  
+        String id =  extra.getString("id"); 
         //先将参数放入List，再对参数进行URL编码
         List<BasicNameValuePair> params = new LinkedList<BasicNameValuePair>();
-        params.add(new BasicNameValuePair("param1", "中国"));
-        params.add(new BasicNameValuePair("param2", "value2"));
+        params.add(new BasicNameValuePair("id", id));
+      
 
         //对参数编码
         String param = URLEncodedUtils.format(params, "UTF-8");
 
         //baseUrl			
-        String baseUrl = "http://www.baidu.com";
+        String baseUrl = "http://citsm.sinaapp.com/getpush.php";
 
         //将URL与参数拼接
         HttpGet getMethod = new HttpGet(baseUrl + "?" + param);
@@ -56,12 +58,12 @@ public class TestActivity extends Activity {
         try {
             HttpResponse response = httpClient.execute(getMethod); //发起GET请求
             TextView tv = new TextView(this);
-            Bundle extra = new Bundle();  
-            extra = getIntent().getExtras();  
-            //String id =  extra.getString("id"); 
+           
+           
             
-            tv.setText(Html.fromHtml("<b>text3:</b><span style='color:red;'>dfff</span>"));
-            //tv.setText(EntityUtils.toString(response.getEntity(), "utf-8"));
+            //tv.setText(Html.fromHtml("<b>text3:</b><span style='color:red;'>dfff</span>"));
+            tv.setText(Html.fromHtml(EntityUtils.toString(response.getEntity(), "utf-8"),imgGetter,null));
+            
             
             addContentView(tv, new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT));
            // Log.i(TAG, "resCode = " + response.getStatusLine().getStatusCode()); //获取响应码

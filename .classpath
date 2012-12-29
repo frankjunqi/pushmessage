@@ -2,7 +2,9 @@
 <classpath>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
-	<classpathentry kind="src" path="src"/>
+	<classpathentry excluding="com/weibo/sdk/android/api/" kind="src" path="src"/>
 	<classpathentry kind="src" path="gen"/>
+	<classpathentry exported="true" kind="lib" path="libs/weibo.sdk.android.sso.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/jpush-sdk-release1.3.3.jar"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>
