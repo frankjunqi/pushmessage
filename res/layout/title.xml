@@ -1,10 +1,19 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
- android:layout_height="wrap_content"
- android:layout_gravity="center">
-        <TextView android:id="@+id/textTile"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/app_name" />
-</LinearLayout>
+<?xml version="1.0" encoding="utf-8"?>  
+<LinearLayout  
+  xmlns:android="http://schemas.android.com/apk/res/android"  
+  android:layout_width="wrap_content"  
+  android:layout_height="wrap_content" >    
+  <ImageView android:layout_width="wrap_content"    
+        android:layout_height="wrap_content" 
+         android:layout_marginTop="30px" 
+          android:layout_marginRight="10px" 
+ android:layout_alignParentLeft="true" 
+        android:src="@drawable/chart_stock"/>  
+   <TextView android:id="@+id/text"    
+        android:layout_width="wrap_content"    
+        android:layout_height="wrap_content"    
+        android:layout_alignParentLeft="true" 
+         android:textColor="#FF8684"
+         android:layout_marginTop="35px" 
+        android:text="@string/app_name" />      
+</LinearLayout>  

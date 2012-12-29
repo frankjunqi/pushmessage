@@ -13,11 +13,10 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 
-import android.R;
 import android.app.Activity;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.util.Log;
+
 import android.view.ViewGroup.LayoutParams;
 import android.widget.TextView;
 import android.text.Html;

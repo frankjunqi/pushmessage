@@ -16,6 +16,9 @@
     <string name="stoppush">停止</string>
     <string name="resumepush">暂停</string>
     <string name="adv">高级</string>
-     <string name="sinaweibo">绑定新浪微博</string>    
+     <string name="sinaweibo">绑定新浪微博</string>  
+      <string name="versionNumber">1.0.2</string>      
+       <string name="pushmsg">自推</string>  
+     
  
 </resources>

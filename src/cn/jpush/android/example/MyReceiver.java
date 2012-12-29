@@ -1,26 +1,18 @@
 package cn.jpush.android.example;
 
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.utils.URLEncodedUtils;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.R;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
@@ -84,17 +76,19 @@ public class MyReceiver extends BroadcastReceiver {
     		sb.append("\n"+id);
             bundle1.putString("content", sb.toString());
             bundle1.putString("id", id);
-            //bundle1.putString("content", "bbb");
-        	Intent i = new Intent(context, TestActivity.class);
+          
+        	Intent i = new Intent(context, MainActivity.class);
+        	
         	i.putExtras(bundle1);
         	i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        	context.startActivity(i);
-            
-            
-            
-         
-           
         	
+        	SharedPreferences preferences =  context.getSharedPreferences("mypush", Activity.MODE_PRIVATE);
+			SharedPreferences.Editor editor = preferences.edit();
+			editor.putString("lastId",id);
+			editor.commit();
+			
+        	context.startActivity(i);
+ 	
         } else {
         	Log.d(TAG, "Unhandled intent - " + intent.getAction());
         }

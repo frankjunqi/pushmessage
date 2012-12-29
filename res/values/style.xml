@@ -15,7 +15,17 @@
 	</style>
 
 	<style name="test" parent="android:Theme"> 
-	    <item name="android:windowTitleSize">30dp</item> 
+	    <item name="android:windowTitleSize">50dp</item> 
+	    <item name="android:textColor">#000</item>  
+	     <item name="android:windowTitleBackgroundStyle">@style/Titleground</item>
+  		<item name="android:textSize">14sp</item>  
+ 		 <item name="android:textStyle">bold</item>
 	  	 
 	</style>
+
+     <style name="Titleground">  
+        <item name="android:background">#369</item>  
+       
+    </style>  
+
 </resources>
