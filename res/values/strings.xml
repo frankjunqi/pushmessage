@@ -20,5 +20,5 @@
       <string name="versionNumber">1.0.2</string>      
        <string name="pushmsg">自推</string>  
      
- 
+  <string name="gps">开启定位</string> 
 </resources>

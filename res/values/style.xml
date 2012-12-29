@@ -24,7 +24,7 @@
 	</style>
 
      <style name="Titleground">  
-        <item name="android:background">#369</item>  
+        <item name="android:background">#FFFFFF</item>  
        
     </style>  
 

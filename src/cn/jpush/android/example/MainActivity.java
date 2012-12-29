@@ -108,10 +108,7 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 			return drawable;
 		}
 	};
-	public void onStop(){
-		Log.i(TAG, "onStop");
-		 manager.removeUpdates(myLocationListener);  
-	}
+
 	protected void onResume() {
 		
 		
@@ -152,11 +149,13 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 		setContentView(R.layout.main);
 		getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.title);
 		
-		SharedPreferences preferences = getSharedPreferences("mypush", MODE_PRIVATE);
-		SharedPreferences.Editor editor = preferences.edit();
+		sp = getSharedPreferences("mypush",MODE_PRIVATE);
+		SharedPreferences.Editor editor = sp.edit();
 		editor.putString("lastId", "");
 		editor.commit();
 		
+		
+		 
 		mViewPager = (ViewPager) findViewById(R.id.viewpager);
 
 		LayoutInflater mLi = LayoutInflater.from(this);
@@ -198,7 +197,7 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 		mViewPager.setOnPageChangeListener(new MyOnPageChangeListener());
 
 		initView();
-		initGPRS();
+		
 		Button btnWeibo = (Button) view1.findViewById(R.id.initWeibo);
 		btnWeibo.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
@@ -210,6 +209,29 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 		button1.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				sendWeibo();
+			}
+		});
+		Button gps =  (Button) view1.findViewById(R.id.gps);
+		gps.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				Button gps =  (Button)v.findViewById(R.id.gps);
+				
+				String lastgps = sp.getString("lastgps", "");
+				SharedPreferences.Editor editor = sp.edit();
+				
+				if(lastgps.equals("开启定位")){
+					gps.setText("关闭定位");
+				
+					editor.putString("lastgps", "关闭定位");
+					editor.commit();
+					initGPRS();
+				}else{
+					gps.setText("开启定位");
+					editor.putString("lastgps", "开启定位");
+					editor.commit();
+					manager.removeUpdates(myLocationListener);  
+				}
+				
 			}
 		});
 		
@@ -225,8 +247,7 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 				Log.i(TAG,sArray[sArray.length-1]);
 				params.add(new BasicNameValuePair("push", sArray[sArray.length-1]));
 				
-				  ;
-	 
+			
 				 
 				params.add(new BasicNameValuePair("msg", "自推:"+ sp.getString("lastloaction", "")));
 				String param = URLEncodedUtils.format(params, "UTF-8");
@@ -461,7 +482,7 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
         criteria.setAltitudeRequired(true);//海拔
         
         String bestProvider = manager.getBestProvider(criteria, true);
-        sp = getSharedPreferences("mypush",MODE_PRIVATE);
+       
         myLocationListener = new MyLocationListener();
         manager.requestLocationUpdates(bestProvider,1000,5, myLocationListener);
         
@@ -479,21 +500,49 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 		matrix.postTranslate(offset, 0);
 		cursor.setImageMatrix(matrix);
 	}
+	public void sendPush(String str){
+		
+		List<BasicNameValuePair> params = new LinkedList<BasicNameValuePair>();
+		
+		String tagName = sp.getString("tagName", "");
+
+		String[] sArray = tagName.split(",");
+		Log.i(TAG,sArray[sArray.length-1]);
+		params.add(new BasicNameValuePair("push", sArray[sArray.length-1]));
+		
+	
+		 
+		params.add(new BasicNameValuePair("msg", str));
+		String param = URLEncodedUtils.format(params, "UTF-8");
+		String baseUrl = "http://citsm.sinaapp.com/sg.php";
+		HttpGet getMethod = new HttpGet(baseUrl + "?" + param);
+
+		HttpClient httpClient = new DefaultHttpClient();
+
+		try {
+			httpClient.execute(getMethod); 
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 	private void sendWeibo(){
-		SharedPreferences preferences = getSharedPreferences("mypush", MODE_PRIVATE);
-		String token = preferences.getString("token","");
-		String expires_in = preferences.getString("expires_in","");
+		
+		String token = sp.getString("token","");
+		String expires_in = sp.getString("expires_in","");
 		MainActivity.accessToken = new Oauth2AccessToken(token, expires_in);
 		
 		AccessTokenKeeper.keepAccessToken(MainActivity.this, accessToken);
 
 
 		StatusesAPI api = new StatusesAPI(MainActivity.accessToken);
-		EditText textwibo = (EditText)view2.findViewById(R.id.editText1);
+		EditText textwibo = (EditText)view3.findViewById(R.id.editText1);
 		
 		api.update(textwibo.getText().toString(), "", "", new RequestListener() {
 			public void onComplete(String arg0) {
 				Log.i(TAG, arg0);
+				sendPush("发送成功 ");
 			}
 			public void onError(WeiboException arg0) {
 				
@@ -632,6 +681,11 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 
 		mResumePush = (Button) view1.findViewById(R.id.resumePush);
 		mResumePush.setOnClickListener(this);
+		
+		
+	
+		
+		
 
 	}
 
