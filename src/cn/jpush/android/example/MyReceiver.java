@@ -1,10 +1,32 @@
 package cn.jpush.android.example;
 
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.utils.URLEncodedUtils;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import android.R;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.Toast;
 import cn.jpush.android.api.JPushInterface;
 
 /**
@@ -16,7 +38,16 @@ import cn.jpush.android.api.JPushInterface;
  */
 public class MyReceiver extends BroadcastReceiver {
 	private static final String TAG = "MyReceiver";
-
+	public void Alert(Context context,String msg){
+		Toast toast = Toast.makeText(context,msg, Toast.LENGTH_LONG);
+        toast.setGravity(Gravity.CENTER, 0, 0);
+        LinearLayout tsv = (LinearLayout) toast.getView();
+        ImageView iv = new ImageView(context);
+        iv.setImageResource(R.drawable.ic_dialog_alert);
+        tsv.addView(iv,0);
+        toast.show();
+		
+	}
 	@Override
 	public void onReceive(Context context, Intent intent) {
         Bundle bundle = intent.getExtras();
@@ -40,12 +71,29 @@ public class MyReceiver extends BroadcastReceiver {
     		for (String key : bundle.keySet()) {
     			sb.append("\nkey:" + key + ", value:" + bundle.getString(key));
     		}
-            bundle1.putString("title", sb.toString());
-            bundle1.putString("content", "bbb");
+    		String id = "";
+    		try{
+    			JSONObject jsonObject = new JSONObject(bundle.getString("cn.jpush.android.EXTRA")); 
+    			id = jsonObject.getString("id");
+    			
+    		} catch (JSONException ex) { 
+    			
+    			
+    		}
+    		
+    		sb.append("\n"+id);
+            bundle1.putString("content", sb.toString());
+            bundle1.putString("id", id);
+            //bundle1.putString("content", "bbb");
         	Intent i = new Intent(context, TestActivity.class);
         	i.putExtras(bundle1);
         	i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         	context.startActivity(i);
+            
+            
+            
+         
+           
         	
         } else {
         	Log.d(TAG, "Unhandled intent - " + intent.getAction());
