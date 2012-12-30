@@ -2,15 +2,37 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:background="#FF8684"
+      android:background="#FFF"
     android:orientation="vertical" >
-	 <ListView
-	       	android:cacheColorHint="#00000000"
-                android:id="@+id/listview"
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent" />
-    
+	 
+    <include
+        android:id="@+id/progressbar"
+        layout="@layout/loading" />
 
+    <!-- 自定义 ScrollView -->
+    <com.jj.waterfall.LazyScrollView
+        android:id="@+id/waterfall_scroll"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_weight="1" >
+
+        <LinearLayout
+            android:id="@+id/waterfall_container"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:padding="2dp" >
+        </LinearLayout>
+    </com.jj.waterfall.LazyScrollView>
+
+    <TextView
+        android:id="@+id/loadtext"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/loading_bg"
+        android:gravity="center"
+        android:padding="10dp"
+        android:text="Loading..."
+        android:textColor="@android:color/background_dark" />
            
     
 </LinearLayout>

@@ -1,14 +1,31 @@
 package cn.jpush.android.example;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.Array;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -18,13 +35,18 @@ import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-
+import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.content.res.AssetManager;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.graphics.drawable.Drawable;
@@ -32,7 +54,9 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Parcelable;
@@ -46,6 +70,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup.LayoutParams;
 import android.view.Window;
 
 import android.view.animation.Animation;
@@ -54,13 +79,18 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
+import android.widget.SimpleAdapter.ViewBinder;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import android.widget.ToggleButton;
+import android.widget.ZoomControls;
 
 import com.amap.cn.apis.util.Constants;
 import com.amap.mapapi.core.GeoPoint;
@@ -68,6 +98,9 @@ import com.amap.mapapi.map.MapActivity;
 import com.amap.mapapi.map.MapController;
 import com.amap.mapapi.map.MapView;
 import com.amap.mapapi.map.MyLocationOverlay;
+import com.jj.waterfall.ImageDownLoadAsyncTask;
+import com.jj.waterfall.LazyScrollView;
+
 import com.weibo.sdk.android.Oauth2AccessToken;
 import com.weibo.sdk.android.Weibo;
 import com.weibo.sdk.android.WeiboAuthListener;
@@ -78,12 +111,32 @@ import com.weibo.sdk.android.api.*;
 import com.weibo.sdk.android.keep.AccessTokenKeeper;
 import com.weibo.sdk.android.net.RequestListener;
 
-
 import cn.jpush.android.api.InstrumentedActivity;
 import cn.jpush.android.api.JPushInterface;
 import com.ycao.message.R;
 
-public class MainActivity extends MapActivity implements OnClickListener {
+public class MainActivity extends MapActivity implements OnClickListener, LazyScrollView.OnScrollListener {
+
+	private LazyScrollView lazyScrollView;
+	private LinearLayout waterfall_container;
+	private ArrayList<LinearLayout> linearLayouts;// 列布局
+
+	private LinearLayout progressbar;// 进度条
+
+	private TextView loadtext;// 底部加载view
+
+	private AssetManager assetManager;
+
+	private List<Object> image_filenames = new ArrayList<Object>();
+	private ImageDownLoadAsyncTask asyncTask;
+
+	private int current_page = 0;// 页码
+	private int count = 40;// 每页显示的个数
+	private int column = 3;// 显示列数
+
+	private int item_width;// 每一个item的宽度
+	private final String file = "images";
+
 	private Weibo mWeibo;
 	private static final String CONSUMER_KEY = "929887641";
 	private static final String REDIRECT_URL = "http://citsm.sinaapp.com/mypushadd.php";
@@ -103,33 +156,163 @@ public class MainActivity extends MapActivity implements OnClickListener {
 	private int bmpW;// 动画图片宽度
 	public String id = "";
 	public ArrayList<View> views = null;
-	public LocationManager manager=null;
+	public LocationManager manager = null;
 	public SharedPreferences sp = null;
-	public MyLocationListener myLocationListener=null;
-	
+	public MyLocationListener myLocationListener = null;
+
 	private MapView mMapView;
 	private MapController mMapController;
 	private GeoPoint point;
 	private MyLocationOverlay mLocationOverlay;
+
+	private ZoomControls zoomControls = null;
+	static long size = 12;
+	private TextView text;
+	public static final int DIALOG_DOWNLOAD_PROGRESS = 0;
+	private ProgressDialog mProgressDialog;
 	
+	int m_count = 0;
+
+	public   ProgressDialog m_pDialog;
+
 	SimpleAdapter adapter = null;
-	
-	ArrayList<HashMap<String,Object>> list = new ArrayList<HashMap<String,Object>>();
+
+	ArrayList<HashMap<String, Object>> list = new ArrayList<HashMap<String, Object>>();
 	ArrayList<String> list1 = new ArrayList<String>();
 	ImageGetter imgGetter = new Html.ImageGetter() {
 		public Drawable getDrawable(String source) {
-			Drawable drawable = null;
-			drawable = Drawable.createFromPath(source);
-			drawable.setBounds(0, 0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
-			return drawable;
+			Log.i(TAG, source);
+
+			//new DownloadFileAsync().execute(source);
+			Drawable d = null;
+			
+			  m_count = 0;
+   
+              m_pDialog = new ProgressDialog(MainActivity.this);
+ 
+              m_pDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+
+              m_pDialog.setTitle("下载中...");
+
+              m_pDialog.setIcon(R.drawable.ic_launcher);
+    
+              m_pDialog.setProgress(0);
+        
+           //   m_pDialog.setIndeterminate(false);
+          
+              m_pDialog.setCancelable(true);
+             
+              m_pDialog.show();
+			try {
+				URL aryURI = new URL(source);
+
+				URLConnection conn = aryURI.openConnection();
+				conn.connect();
+				
+				int lenghtOfFile = conn.getContentLength();
+				
+				InputStream input = new BufferedInputStream(aryURI.openStream());
+				OutputStream output = new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/lualu.jpg");
+
+				byte data[] = new byte[1024];
+
+				long total = 0;
+
+				while ((count = input.read(data)) != -1) {
+					total += count;
+					if((int) ((total * 100) / lenghtOfFile)>99){
+						m_pDialog.cancel();
+					}
+
+					
+					output.write(data, 0, count);
+				}
+
+				output.flush();
+				output.close();
+				input.close();
+				InputStream is = conn.getInputStream();
+
+				d = Drawable.createFromStream(is, "");
+
+				is.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			d.setBounds(0, 0, d.getIntrinsicWidth() * 3, d.getIntrinsicHeight() * 3);
+			return d;
 		}
 	};
 
+	@Override
+	protected Dialog onCreateDialog(int id) {
+		switch (id) {
+		case DIALOG_DOWNLOAD_PROGRESS:
+			mProgressDialog = new ProgressDialog(this);
+			mProgressDialog.setMessage("Downloading file..");
+			mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+			mProgressDialog.setCancelable(false);
+			mProgressDialog.show();
+			return mProgressDialog;
+		default:
+			return null;
+		}
+	}
+
+	public class DownloadFileAsync extends AsyncTask<String, String, String> {
+		protected void onPreExecute() {
+			super.onPreExecute();
+			showDialog(DIALOG_DOWNLOAD_PROGRESS);
+		}
+
+		@Override
+		protected String doInBackground(String... aurl) {
+			int count;
+			try {
+				URL url = new URL(aurl[0]);
+				URLConnection conexion = url.openConnection();
+				conexion.connect();
+
+				int lenghtOfFile = conexion.getContentLength();
+				
+				InputStream input = new BufferedInputStream(url.openStream());
+				OutputStream output = new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/lualu.jpg");
+
+				byte data[] = new byte[1024];
+
+				long total = 0;
+
+				while ((count = input.read(data)) != -1) {
+					total += count;
+					publishProgress("" + (int) ((total * 100) / lenghtOfFile));
+					output.write(data, 0, count);
+				}
+
+				output.flush();
+				output.close();
+				input.close();
+			} catch (Exception e) {
+
+			}
+			return null;
+
+		}
+
+		protected void onProgressUpdate(String... progress) {
+			Log.d("ANDRO_ASYNC", progress[0]);
+			mProgressDialog.setProgress(Integer.parseInt(progress[0]));
+		}
+
+		@Override
+		protected void onPostExecute(String unused) {
+			dismissDialog(DIALOG_DOWNLOAD_PROGRESS);
+		}
+	}
+
 	protected void onResume() {
 		super.onResume();
-		
-		this.mLocationOverlay.enableMyLocation();
-		
+
 		SharedPreferences preferences = getSharedPreferences("mypush", MODE_PRIVATE);
 		String lastId = preferences.getString("lastId", "");
 
@@ -157,20 +340,19 @@ public class MainActivity extends MapActivity implements OnClickListener {
 			}
 		}
 	}
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		this.requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
 		setContentView(R.layout.main);
 		getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.title);
-		
-		sp = getSharedPreferences("mypush",MODE_PRIVATE);
+
+		sp = getSharedPreferences("mypush", MODE_PRIVATE);
 		SharedPreferences.Editor editor = sp.edit();
 		editor.putString("lastId", "");
 		editor.commit();
-		
-		
-		 
+
 		mViewPager = (ViewPager) findViewById(R.id.viewpager);
 
 		LayoutInflater mLi = LayoutInflater.from(this);
@@ -184,14 +366,17 @@ public class MainActivity extends MapActivity implements OnClickListener {
 		views.add(view2);
 		views.add(view3);
 		views.add(view4);
+
 		t1 = (TextView) findViewById(R.id.text1);
 		t2 = (TextView) findViewById(R.id.text2);
 		t3 = (TextView) findViewById(R.id.text3);
 		t4 = (TextView) findViewById(R.id.text4);
+
 		t1.setOnClickListener(new MyOnClickListener(0));
 		t2.setOnClickListener(new MyOnClickListener(1));
 		t3.setOnClickListener(new MyOnClickListener(2));
 		t4.setOnClickListener(new MyOnClickListener(3));
+
 		PagerAdapter mPagerAdapter = new PagerAdapter() {
 			public boolean isViewFromObject(View arg0, Object arg1) {
 				return arg0 == arg1;
@@ -216,46 +401,91 @@ public class MainActivity extends MapActivity implements OnClickListener {
 		mViewPager.setOnPageChangeListener(new MyOnPageChangeListener());
 
 		initView();
-		
+
+		zoomControls = (ZoomControls) view3.findViewById(R.id.zoomcontrols);
+		zoomControls.setOnZoomInClickListener(new OnClickListener() {
+
+			public void onClick(View v) {
+				size = size + 2;
+				TextView tv = (TextView) view3.findViewById(R.id.txtView);
+				tv.setTextSize(size);
+			}
+		});
+		zoomControls.setOnZoomOutClickListener(new OnClickListener() {
+
+			public void onClick(View v) {
+				size = size - 2;
+				TextView tv = (TextView) view3.findViewById(R.id.txtView);
+				tv.setTextSize(size);
+			}
+		});
+		// try {
+		// getList();
+		// } catch (JSONException e1) {
+		//
+		// e1.printStackTrace();
+		// }
+
 		Button btnWeibo = (Button) view1.findViewById(R.id.initWeibo);
 		btnWeibo.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				initSinaWeibo();
 			}
 		});
-		
-		Button button1 =  (Button) view3.findViewById(R.id.button1);
+
+		Button button1 = (Button) view3.findViewById(R.id.button1);
 		button1.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				sendWeibo();
 			}
 		});
-		Button gps =  (Button) view1.findViewById(R.id.gps);
+
+		ToggleButton toggleButton1 = (ToggleButton) view4.findViewById(R.id.toggleButton1);
+		toggleButton1.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+				if (isChecked) {
+					mLocationOverlay.disableMyLocation();
+
+				} else {
+
+					mLocationOverlay.enableMyLocation();
+					mLocationOverlay.runOnFirstFix(new Runnable() {
+						public void run() {
+							handler.sendMessage(Message.obtain(handler, Constants.FIRST_LOCATION));
+						}
+					});
+
+				}
+
+			}
+
+		});
+
+		Button gps = (Button) view1.findViewById(R.id.gps);
 		gps.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
-				Button gps =  (Button)v.findViewById(R.id.gps);
-				
+				Button gps = (Button) v.findViewById(R.id.gps);
+
 				String lastgps = sp.getString("lastgps", "");
 				SharedPreferences.Editor editor = sp.edit();
-				
-				if(lastgps.equals("开启定位")){
+
+				if (lastgps.equals("开启定位")) {
 					gps.setText("关闭定位");
-				
+
 					editor.putString("lastgps", "关闭定位");
 					editor.commit();
 					initGPRS();
-				}else{
+				} else {
 					gps.setText("开启定位");
 					editor.putString("lastgps", "开启定位");
 					editor.commit();
-					manager.removeUpdates(myLocationListener);  
+					manager.removeUpdates(myLocationListener);
 				}
-				
+
 			}
 		});
-		
-		
-		Button button3 =  (Button) view1.findViewById(R.id.pushmsg);
+
+		Button button3 = (Button) view1.findViewById(R.id.pushmsg);
 		button3.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				List<BasicNameValuePair> params = new LinkedList<BasicNameValuePair>();
@@ -263,12 +493,10 @@ public class MainActivity extends MapActivity implements OnClickListener {
 				String tagName = preferences.getString("tagName", "");
 
 				String[] sArray = tagName.split(",");
-				Log.i(TAG,sArray[sArray.length-1]);
-				params.add(new BasicNameValuePair("push", sArray[sArray.length-1]));
-				
-			
-				 
-				params.add(new BasicNameValuePair("msg", "自推:"+ sp.getString("lastloaction", "")));
+				Log.i(TAG, sArray[sArray.length - 1]);
+				params.add(new BasicNameValuePair("push", sArray[sArray.length - 1]));
+
+				params.add(new BasicNameValuePair("msg", "自推:" + sp.getString("lastloaction", "")));
 				String param = URLEncodedUtils.format(params, "UTF-8");
 				String baseUrl = "http://citsm.sinaapp.com/sg.php";
 				HttpGet getMethod = new HttpGet(baseUrl + "?" + param);
@@ -276,7 +504,7 @@ public class MainActivity extends MapActivity implements OnClickListener {
 				HttpClient httpClient = new DefaultHttpClient();
 
 				try {
-					HttpResponse response = httpClient.execute(getMethod); 
+					httpClient.execute(getMethod);
 				} catch (ClientProtocolException e) {
 					e.printStackTrace();
 				} catch (IOException e) {
@@ -284,44 +512,10 @@ public class MainActivity extends MapActivity implements OnClickListener {
 				}
 			}
 		});
+
+		initMap();
 		Bundle extra = new Bundle();
 		extra = getIntent().getExtras();
-		
-		final ListView listview = (ListView)view2.findViewById(R.id.listview);
-		
-		
-
-		adapter = new SimpleAdapter(this,list,R.layout.lv,new String[]{"img","title","info"},new int[]{R.id.img,R.id.title,R.id.info});
-		getList();
-		listview.setAdapter(adapter);
-		
-		listview.setOnItemClickListener(new OnItemClickListener(){
-			public void onItemClick(AdapterView<?> arg0, View arg1, int arg2, long arg3) {
-				 HashMap<String,String> map=(HashMap<String,String>)listview.getItemAtPosition(arg2); 
-				
-				
-              
-
-              
-                Handler handler = new Handler();
-                
-//                Runnable runnable=new Runnable() {
-//
-//                    public void run() {
-//                    	 EditText textwibo = (EditText)view2.findViewById(R.id.editText1);
-//                    	 textwibo.setText("abcd");
-//                    }
-//                };
-//                handler.postDelayed(runnable, 1000);
-				mViewPager.setCurrentItem(2);
-				 
-			}
-             
-        });
-		//setListAdapter(adapter);
-		//ListView listView = (ListView)view2.findViewById(R.id.ListView01);
-       // listView.setAdapter(new ArrayAdapter<String>(this, R.layout.lv,getData()));
-		initMap();
 		try {
 			String id = extra.getString("id");
 			mViewPager.setCurrentItem(2);
@@ -346,98 +540,167 @@ public class MainActivity extends MapActivity implements OnClickListener {
 		} catch (Exception e) {
 
 		}
-		
+
 	}
 
-		protected void onPause() {
-	    	this.mLocationOverlay.disableMyLocation();
-			super.onPause();
+	public void initImages() {
+		lazyScrollView = (LazyScrollView) findViewById(R.id.waterfall_scroll);
+		lazyScrollView.getView();
+		lazyScrollView.setOnScrollListener(this);
+		waterfall_container = (LinearLayout) findViewById(R.id.waterfall_container);
+		progressbar = (LinearLayout) findViewById(R.id.progressbar);
+		loadtext = (TextView) findViewById(R.id.loadtext);
+
+		item_width = getWindowManager().getDefaultDisplay().getWidth() / column;
+		linearLayouts = new ArrayList<LinearLayout>();
+
+		for (int i = 0; i < column; i++) {
+			LinearLayout layout = new LinearLayout(this);
+			LinearLayout.LayoutParams itemParam = new LinearLayout.LayoutParams(item_width, LayoutParams.WRAP_CONTENT);
+			layout.setOrientation(LinearLayout.VERTICAL);
+			layout.setLayoutParams(itemParam);
+			linearLayouts.add(layout);
+			waterfall_container.addView(layout);
 		}
 
+	}
 
+	public Bitmap getBitmap(String imageUrl) {
+		Bitmap mBitmap = null;
+		try {
+			URL url = new URL(imageUrl);
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			InputStream is = conn.getInputStream();
+			mBitmap = BitmapFactory.decodeStream(is);
+
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return mBitmap;
+	}
+
+	private void initMap() {
+
+		mMapView = (MapView) view4.findViewById(R.id.mapView_offlinemap);
+		mMapView.setBuiltInZoomControls(true);
+		mMapController = mMapView.getController();
+		point = new GeoPoint((int) (39.90923 * 1E6), (int) (116.397428 * 1E6));
+		mMapController.setCenter(point);
+		mMapController.setZoom(12);
+		mLocationOverlay = new MyLocationOverlay(this, mMapView);
+
+		mMapView.getOverlays().add(mLocationOverlay);
+
+	}
+
+	public Handler handler = new Handler() {
+		public void handleMessage(Message msg) {
 		
-	 private void initMap(){
-		
-		 	mMapView = (MapView) view4.findViewById(R.id.mapView_offlinemap);
-			mMapView.setBuiltInZoomControls(true);  
-			mMapController = mMapView.getController();  
-			point = new GeoPoint((int) (39.90923 * 1E6),
-					(int) (116.397428 * 1E6));  
-			mMapController.setCenter(point);  
-			mMapController.setZoom(12);   
-			mLocationOverlay = new MyLocationOverlay(this, mMapView);
-			mLocationOverlay.enableMyLocation();
-			mMapView.getOverlays().add(mLocationOverlay);
-			
-			mLocationOverlay.runOnFirstFix(new Runnable() {
-	            public void run() {
-	            	handler.sendMessage(Message.obtain(handler, Constants.FIRST_LOCATION));
-	            }
-	        });
-		 
-	 }
-	 private Handler handler = new Handler() {
-			public void handleMessage(Message msg) {
-				Log.i(TAG,msg.what+"sdafsdfsdf");
-				if (msg.what == Constants.FIRST_LOCATION) {
-					mMapController.animateTo(mLocationOverlay.getMyLocation());
-				}
+			if (msg.what == Constants.FIRST_LOCATION) {
+				mMapController.animateTo(mLocationOverlay.getMyLocation());
 			}
+		}
 	};
-	 private class MyLocationListener implements LocationListener{
-	        public void onLocationChanged(Location location) {
-	            location.getAccuracy();//精确度
-	            String  latitude = location.getLatitude()+"";//经度
-	            String longitude = location.getLongitude()+"";//纬度
-	            Editor editor = sp.edit();
-	            editor.putString("lastloaction", latitude + "-" + longitude);
-	            editor.commit();
-	            
-	        }
-	        public void onStatusChanged(String provider, int status, Bundle extras) {
-	            
-	        }       
-	        public void onProviderEnabled(String provider) {
-	            
-	        }
-	        public void onProviderDisabled(String provider) {
-	            
-	        } 
+	private Handler handler2 = new Handler() {
+		public void handleMessage(Message msg) {
+			switch (msg.what) {
+			case 1:
+				try {
+					getList();
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+				break;
+			}
+
+		}
 	};
-	public void getList(){
-		for(int i=0;i<100;i++){
-			HashMap<String,Object> map1 =new HashMap<String,Object>();
-			map1.put("img", R.drawable.ic_launcher);
-			map1.put("title", "中国银行"+i);
-			map1.put("info",  12.5+i);
-			list.add(map1);
+
+	private class MyLocationListener implements LocationListener {
+		public void onLocationChanged(Location location) {
+			location.getAccuracy();// 精确度
+			String latitude = location.getLatitude() + "";// 经度
+			String longitude = location.getLongitude() + "";// 纬度
+			Editor editor = sp.edit();
+			editor.putString("lastloaction", latitude + "-" + longitude);
+			editor.commit();
+
+		}
+
+		public void onStatusChanged(String provider, int status, Bundle extras) {
+
+		}
+
+		public void onProviderEnabled(String provider) {
+
+		}
+
+		public void onProviderDisabled(String provider) {
+
+		}
+	};
+
+	public void getList() throws JSONException {
+
+		List<BasicNameValuePair> params = new LinkedList<BasicNameValuePair>();
+		params.add(new BasicNameValuePair("offset", current_page + ""));
+		params.add(new BasicNameValuePair("limit", count + ""));
+		String param = URLEncodedUtils.format(params, "UTF-8");
+		String baseUrl = "http://huaworld.sinaapp.com/getlualu.php";
+		HttpGet getMethod = new HttpGet(baseUrl + "?" + param);
+		HttpClient httpClient = new DefaultHttpClient();
+		try {
+			image_filenames.clear();
+			HttpResponse response = httpClient.execute(getMethod);
+			JSONArray jsonObject = new JSONArray(EntityUtils.toString(response.getEntity(), "utf-8"));
+			for (int i = 0; i < jsonObject.length(); i++) {
+				JSONObject jsonObject2 = (JSONObject) jsonObject.opt(i);
+				image_filenames.add(jsonObject2);
+			}
+			addImage(current_page, count);
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
+
 	public class MyPagerAdapter extends PagerAdapter {
 		public List<View> mListViews;
+
 		public MyPagerAdapter(List<View> mListViews) {
 			this.mListViews = mListViews;
 		}
+
 		public void destroyItem(View arg0, int arg1, Object arg2) {
 			((ViewPager) arg0).removeView(mListViews.get(arg1));
 		}
+
 		public void finishUpdate(View arg0) {
 		}
+
 		public int getCount() {
 			return mListViews.size();
 		}
+
 		public Object instantiateItem(View arg0, int arg1) {
 			((ViewPager) arg0).addView(mListViews.get(arg1), 0);
 			return mListViews.get(arg1);
 		}
+
 		public boolean isViewFromObject(View arg0, Object arg1) {
 			return arg0 == (arg1);
 		}
+
 		public void restoreState(Parcelable arg0, ClassLoader arg1) {
 		}
+
 		public Parcelable saveState() {
 			return null;
 		}
+
 		public void startUpdate(View arg0) {
 		}
 	}
@@ -454,82 +717,113 @@ public class MainActivity extends MapActivity implements OnClickListener {
 		}
 	};
 
+	private class MyTask extends TimerTask {
+		@Override
+		public void run() {
+
+			Message message = new Message();
+			message.what = 1;
+			handler2.sendMessage(message);
+
+		}
+	}
+
 	public class MyOnPageChangeListener implements OnPageChangeListener {
 		int one = offset * 2 + bmpW;
 		int two = one * 2;
 		int three = one * 3;
 
 		public void onPageSelected(int arg0) {
-//			Log.i(TAG, one+"");
-//			Log.i(TAG, two+"");
-//			Log.i(TAG, three+"");
-//			Log.i(TAG, arg0+"");
-//			Log.i(TAG, currIndex+"");
-//			Log.i(TAG, offset+"");		
 			Animation animation = null;
+
 			switch (arg0) {
-				case 0:
-					if (currIndex == 1) {
-						animation = new TranslateAnimation(one, 0, 0, 0);
-					} else if (currIndex == 2) {
-						animation = new TranslateAnimation(two, 0, 0, 0);
-					}
-					break;
-				case 1:
-					if (currIndex == 0) {
-						animation = new TranslateAnimation(offset, one, 0, 0);
-					} else if (currIndex == 2) {
-						animation = new TranslateAnimation(two, one, 0, 0);
-					
-					}
-					break;
-				case 2:
-					if (currIndex == 0) {
-						animation = new TranslateAnimation(two,offset , 0, 0);
-					} else if (currIndex == 1) {
-						animation = new TranslateAnimation(one, two, 0, 0);
-					} else if (currIndex == 3) {
-						animation = new TranslateAnimation(three,two , 0, 0);
-					}
-					break;
-				case 3:
-					
-					if (currIndex == 2) {
-						animation = new TranslateAnimation(offset, three , 0, 0);
-					
-					}
-					break;
+			case 0:
+				if (currIndex == 1) {
+					animation = new TranslateAnimation(one, 0, 0, 0);
+				} else if (currIndex == 2) {
+					animation = new TranslateAnimation(two, 0, 0, 0);
+				} else if (currIndex == 3) {
+					animation = new TranslateAnimation(three, 0, 0, 0);
+
+				}
+
+				break;
+			case 1:
+
+				if (cols[0] == 0) {
+					Timer timer = new Timer();
+					timer.schedule(new MyTask(), 300);
+					// timer.cancel();
+
+				}
+
+				if (currIndex == 0) {
+					animation = new TranslateAnimation(offset, one, 0, 0);
+				} else if (currIndex == 2) {
+					animation = new TranslateAnimation(two, one, 0, 0);
+
+				} else if (currIndex == 3) {
+					animation = new TranslateAnimation(three, one, 0, 0);
+
+				}
+				break;
+			case 2:
+				if (currIndex == 0) {
+					animation = new TranslateAnimation(one, two, 0, 0);
+				} else if (currIndex == 1) {
+					animation = new TranslateAnimation(one, two, 0, 0);
+				} else if (currIndex == 2) {
+					animation = new TranslateAnimation(two, three, 0, 0);
+				} else if (currIndex == 3) {
+					animation = new TranslateAnimation(three, two, 0, 0);
+				}
+				break;
+			case 3:
+				if (currIndex == 0) {
+					animation = new TranslateAnimation(one, three, 0, 0);
+
+				} else if (currIndex == 1) {
+					animation = new TranslateAnimation(two, three, 0, 0);
+				} else if (currIndex == 2) {
+					animation = new TranslateAnimation(two, three, 0, 0);
+
+				}
+				break;
 			}
 			currIndex = arg0;
 			animation.setFillAfter(true);
-			animation.setDuration(200);
+			animation.setDuration(100);
 			cursor.startAnimation(animation);
 		}
 
 		public void onPageScrolled(int arg0, float arg1, int arg2) {
+			// Log.i(TAG, arg0 + ":"+arg1+":"+arg2);
+
 		}
+
 		public void onPageScrollStateChanged(int arg0) {
+			// Log.i("onPageScrollStateChanged", arg0+"");
 		}
 	}
-	private void initGPRS(){
-		
-		 manager = (LocationManager) getSystemService(LOCATION_SERVICE);
-		 List<String> providers = manager.getAllProviders();
-		 Criteria criteria = new Criteria();
-        criteria.setAccuracy(Criteria.ACCURACY_FINE);//精度要求：ACCURACY_FINE(高)ACCURACY_COARSE(低)
-        criteria.setCostAllowed(true);//允许产生开销
-        criteria.setPowerRequirement(Criteria.POWER_HIGH);//消耗大的话，获取的频率高
-        criteria.setSpeedRequired(true);//手机位置移动
-        criteria.setAltitudeRequired(true);//海拔
-        
-        String bestProvider = manager.getBestProvider(criteria, true);
-       
-        myLocationListener = new MyLocationListener();
-        manager.requestLocationUpdates(bestProvider,1000,5, myLocationListener);
-        
-      
-		
+
+	private void initGPRS() {
+
+		manager = (LocationManager) getSystemService(LOCATION_SERVICE);
+		List<String> providers = manager.getAllProviders();
+		Criteria criteria = new Criteria();
+		criteria.setAccuracy(Criteria.ACCURACY_FINE);// 精度要求：ACCURACY_FINE(高)ACCURACY_COARSE(低)
+		criteria.setCostAllowed(true);// 允许产生开销
+		criteria.setPowerRequirement(Criteria.POWER_HIGH);// 消耗大的话，获取的频率高
+		criteria.setSpeedRequired(true);// 手机位置移动
+		criteria.setAltitudeRequired(true);// 海拔
+
+		String bestProvider = manager.getBestProvider(criteria, true);
+
+		myLocationListener = new MyLocationListener();
+		manager.requestLocationUpdates(bestProvider, 1000, 5, myLocationListener);
+
 	}
+
 	private void InitImageView() {
 		cursor = (ImageView) findViewById(R.id.cursor);
 		bmpW = BitmapFactory.decodeResource(getResources(), R.drawable.a).getWidth();
@@ -541,18 +835,17 @@ public class MainActivity extends MapActivity implements OnClickListener {
 		matrix.postTranslate(offset, 0);
 		cursor.setImageMatrix(matrix);
 	}
-	public void sendPush(String str){
-		
+
+	public void sendPush(String str) {
+
 		List<BasicNameValuePair> params = new LinkedList<BasicNameValuePair>();
-		
+
 		String tagName = sp.getString("tagName", "");
 
 		String[] sArray = tagName.split(",");
-		Log.i(TAG,sArray[sArray.length-1]);
-		params.add(new BasicNameValuePair("push", sArray[sArray.length-1]));
-		
-	
-		 
+		Log.i(TAG, sArray[sArray.length - 1]);
+		params.add(new BasicNameValuePair("push", sArray[sArray.length - 1]));
+
 		params.add(new BasicNameValuePair("msg", str));
 		String param = URLEncodedUtils.format(params, "UTF-8");
 		String baseUrl = "http://citsm.sinaapp.com/sg.php";
@@ -561,59 +854,82 @@ public class MainActivity extends MapActivity implements OnClickListener {
 		HttpClient httpClient = new DefaultHttpClient();
 
 		try {
-			httpClient.execute(getMethod); 
+			httpClient.execute(getMethod);
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
-	private void sendWeibo(){
-		
-		String token = sp.getString("token","");
-		String expires_in = sp.getString("expires_in","");
+
+	private void sendWeibo() {
+
+		String token = sp.getString("token", "");
+		String expires_in = sp.getString("expires_in", "");
 		MainActivity.accessToken = new Oauth2AccessToken(token, expires_in);
-		
+
 		AccessTokenKeeper.keepAccessToken(MainActivity.this, accessToken);
 
-
 		StatusesAPI api = new StatusesAPI(MainActivity.accessToken);
-		EditText textwibo = (EditText)view3.findViewById(R.id.editText1);
-		
-		api.update(textwibo.getText().toString(), "", "", new RequestListener() {
-			public void onComplete(String arg0) {
-				Log.i(TAG, arg0);
-				sendPush("发送成功 ");
-			}
-			public void onError(WeiboException arg0) {
-				
-			}
-			public void onIOException(IOException arg0) {
-			
-			}
-		});
+		EditText textwibo = (EditText) view3.findViewById(R.id.editText1);
+		TextView tv = (TextView) view3.findViewById(R.id.txtView);
 
-	
+		if (!lastImg.equals("")) {
+			Log.i("upload", tv.getText().toString());
+			api.upload(textwibo.getText().toString(), Environment.getExternalStorageDirectory().getPath() + "/lualu.jpg", "", "", new RequestListener() {
+				public void onComplete(String arg0) {
+					//Log.i(TAG, arg0);
+					sendPush("发送成功 ");
+				}
+
+				public void onError(WeiboException arg0) {
+					sendPush(arg0.getMessage());
+				}
+
+				public void onIOException(IOException arg0) {
+					sendPush(arg0.getMessage());
+				}
+			});
+		} else {
+			Log.i("update", tv.getText().toString());
+			api.update(textwibo.getText().toString(), "", "", new RequestListener() {
+				public void onComplete(String arg0) {
+					
+					sendPush("发送成功 ");
+				}
+
+				public void onError(WeiboException arg0) {
+					sendPush(arg0.getMessage());
+				}
+
+				public void onIOException(IOException arg0) {
+					sendPush(arg0.getMessage());	
+				}
+			});
+		}
+
 	}
+
 	private void initSinaWeibo() {
 		Log.i(TAG, "initWeibo");
 		mWeibo = Weibo.getInstance(CONSUMER_KEY, REDIRECT_URL);
 		mWeibo.authorize(MainActivity.this, new AuthDialogListener());
 
 	}
+
 	public class AuthDialogListener implements WeiboAuthListener {
 		public void onComplete(Bundle values) {
 			String token = values.getString("access_token");
 			String expires_in = values.getString("expires_in");
 			MainActivity.accessToken = new Oauth2AccessToken(token, expires_in);
 			if (MainActivity.accessToken.isSessionValid()) {
-				
+
 				SharedPreferences preferences = getSharedPreferences("mypush", MODE_PRIVATE);
 				SharedPreferences.Editor editor = preferences.edit();
-				editor.putString("token",token);
-				editor.putString("expires_in",expires_in);
+				editor.putString("token", token);
+				editor.putString("expires_in", expires_in);
 				editor.commit();
-	
+
 				AccessTokenKeeper.keepAccessToken(MainActivity.this, accessToken);
 
 				TextView mweibo = (TextView) findViewById(R.id.weibo);
@@ -654,8 +970,10 @@ public class MainActivity extends MapActivity implements OnClickListener {
 
 									}
 								}
+
 								public void onError(WeiboException arg0) {
 								}
+
 								public void onIOException(IOException arg0) {
 								}
 
@@ -665,12 +983,14 @@ public class MainActivity extends MapActivity implements OnClickListener {
 
 						}
 					}
-					public void onError(WeiboException arg0) {	
+
+					public void onError(WeiboException arg0) {
 					}
+
 					public void onIOException(IOException arg0) {
 					}
 				});
-	
+
 			}
 		}
 
@@ -722,31 +1042,167 @@ public class MainActivity extends MapActivity implements OnClickListener {
 
 		mResumePush = (Button) view1.findViewById(R.id.resumePush);
 		mResumePush.setOnClickListener(this);
-		
-		
-	
-		
-		
+
+		lazyScrollView = (LazyScrollView) view2.findViewById(R.id.waterfall_scroll);
+		lazyScrollView.getView();
+		lazyScrollView.setOnScrollListener(this);
+
+		waterfall_container = (LinearLayout) view2.findViewById(R.id.waterfall_container);
+		progressbar = (LinearLayout) view2.findViewById(R.id.progressbar);
+		loadtext = (TextView) view2.findViewById(R.id.loadtext);
+
+		item_width = getWindowManager().getDefaultDisplay().getWidth() / column;
+		linearLayouts = new ArrayList<LinearLayout>();
+
+		for (int i = 0; i < column; i++) {
+			LinearLayout layout = new LinearLayout(this);
+			LinearLayout.LayoutParams itemParam = new LinearLayout.LayoutParams(item_width, LayoutParams.WRAP_CONTENT);
+			layout.setOrientation(LinearLayout.VERTICAL);
+			layout.setLayoutParams(itemParam);
+			linearLayouts.add(layout);
+			waterfall_container.addView(layout);
+		}
 
 	}
 
 	public void onClick(View v) {
 
 		switch (v.getId()) {
-			case R.id.init:
-				init();
-				break;
-			// case R.id.setting:
-			// Intent intent = new Intent(MainActivity.this, PushSetActivity.class);
-			// startActivity(intent);
-			// break;
-			//
-			case R.id.resumePush:
-				JPushInterface.resumePush(getApplicationContext());
-				break;
+		case R.id.init:
+			init();
+			break;
+		// case R.id.setting:
+		// Intent intent = new Intent(MainActivity.this, PushSetActivity.class);
+		// startActivity(intent);
+		// break;
+		//
+		case R.id.resumePush:
+			JPushInterface.resumePush(getApplicationContext());
+			break;
 		}
 	}
+
 	private void init() {
 		JPushInterface.init(getApplicationContext());
 	}
+
+	/***
+	 * 加载更多
+	 * 
+	 * @param current_page
+	 * @param count
+	 */
+	private void addImage(int current_page, int count) {
+		int imagecount = image_filenames.size();
+		Log.i(TAG, imagecount + "");
+		for (int i = 0; i < imagecount; i++) {
+			JSONObject obj = (JSONObject) image_filenames.get(i);
+			String domain = "";
+			String filename = "";
+			String url = "";
+			String height = "";
+
+			try {
+				domain = obj.getString("domain");
+				filename = obj.getString("filename");
+				url = domain + filename + "!192";
+				height = obj.getString("sh");
+			} catch (JSONException e) {
+
+			}
+			if (!filename.equals("") && Integer.parseInt(height) < 300) {
+				addBitMapToImage(url, getMinCol(Integer.parseInt(height)), i, height);
+			}
+		}
+
+	}
+
+	public int[] cols = new int[column];
+
+	public int getMinCol(int height) {
+		// Log.i("getMinCol",cols[0]+":"+cols[1]+":"+cols[2]+":"+cols[3]);
+		int min = cols[0]; // 最小值
+
+		int col = 0;
+		for (int i = 0; i < cols.length; i++) {
+			if (cols[i] < min) {
+				min = cols[i];
+				col = i;
+			}
+		}
+		cols[col] = cols[col] + height;
+
+		return col;
+
+	}
+
+	private void addBitMapToImage(String imageName, int j, int i, String height) {
+		ImageView imageView = getImageview(imageName, height);
+		asyncTask = new ImageDownLoadAsyncTask(this, imageName, imageView, item_width);
+
+		asyncTask.setProgressbar(progressbar);
+		asyncTask.setLoadtext(loadtext);
+		asyncTask.execute();
+
+		imageView.setTag(imageName);
+
+		linearLayouts.get(j).addView(imageView);
+
+		imageView.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+
+				TextView tv = (TextView) view3.findViewById(R.id.txtView);
+				lastImg = v.getTag().toString().replace("!192", "");
+				tv.setText(Html.fromHtml("<img  src=\"" + v.getTag().toString().replace("!192", "") + "\"/>", imgGetter, null));
+				mViewPager.setCurrentItem(2);
+
+			}
+		});
+	}
+
+	public String lastImg = "";
+
+	public ImageView getImageview(String imageName, String height) {
+		ImageView imageView = new ImageView(this);
+		LayoutParams layoutParams = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.FILL_PARENT);
+		imageView.setLayoutParams(layoutParams);
+
+		imageView.setMinimumWidth(292);
+		if (!height.equals("")) {
+			imageView.setMinimumHeight(Integer.parseInt(height));
+		}
+		// imageView.setPadding(5, 0, 5,5);
+		imageView.setBackgroundResource(R.drawable.image_border);
+
+		return imageView;
+	}
+
+	/***
+	 * 
+	 * 获取相应图片的 BitmapFactory.Options
+	 */
+	public Bitmap getBitmapBounds(String imageName) {
+		return getBitmap(imageName);
+
+	}
+
+	public void onBottom() {
+		current_page = current_page + count;
+
+		try {
+			getList();
+		} catch (JSONException e) {
+
+		}
+
+	}
+
+	public void onTop() {
+
+	}
+
+	public void onScroll() {
+
+	}
+
 }

@@ -29,7 +29,7 @@
             android:layout_height="fill_parent"
             android:layout_weight="1.0"
             android:gravity="center"
-            android:text="我的股票"
+            android:text="来一发"
           
             android:textSize="18.0dip" />
 

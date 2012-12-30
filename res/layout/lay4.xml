@@ -1,13 +1,30 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>    
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:orientation="vertical"
-    android:background="#1586FF" >
+    android:orientation="vertical" 
+     android:background="#FFF" >>
+     <LinearLayout android:orientation="horizontal" 
+        android:layout_width="fill_parent"
+		android:layout_height="wrap_content">
+
+     <ToggleButton
+         android:id="@+id/toggleButton1"
+         android:layout_width="wrap_content"
+         android:layout_height="wrap_content"
+         android:checked="true"
+         android:text="ToggleButton" />
     
-	     <com.amap.mapapi.map.MapView android:id="@+id/mapView_offlinemap"
-				android:layout_width="fill_parent" android:layout_height="fill_parent" 
+	</LinearLayout>
+
+	    <com.amap.mapapi.map.MapView 
+	        	android:id="@+id/mapView_offlinemap"
+				android:layout_width="fill_parent"
+        		android:layout_height="fill_parent"
 				android:clickable="true"    
 			
 			/>
+	    
+	    
+	     
 </LinearLayout>

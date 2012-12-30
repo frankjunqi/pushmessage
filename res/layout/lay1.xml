@@ -2,83 +2,82 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:orientation="vertical"
-    android:background="#158684" >
-  
+    android:background="#FFF"
+    android:orientation="vertical" >
 
-            <TextView
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content" />
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content" />
 
-            <TextView
-                android:id="@+id/tv_appkey"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dip" />
+    <TextView
+        android:id="@+id/tv_appkey"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dip" />
 
-            <TextView
-                android:id="@+id/tv_package"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dip" />
+    <TextView
+        android:id="@+id/tv_package"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dip" />
 
-            <TextView
-                android:id="@+id/tv_imei"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dip" />
+    <TextView
+        android:id="@+id/tv_imei"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dip" />
 
-            <TextView
-                android:id="@+id/tv_version"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dip" />
+    <TextView
+        android:id="@+id/tv_version"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dip" />
 
-            <TextView
-                android:id="@+id/tag_name"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dip" />
+    <TextView
+        android:id="@+id/tag_name"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dip" />
 
-            <TextView
-                android:id="@+id/weibo"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dip" />
+    <TextView
+        android:id="@+id/weibo"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dip" />
 
-            <Button
-                android:id="@+id/init"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dip"
-                android:text="@string/initpush" />
+    <Button
+        android:id="@+id/init"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dip"
+        android:text="@string/initpush" />
 
-            <Button
-                android:id="@+id/resumePush"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dip"
-                android:text="@string/resumepush" />
+    <Button
+        android:id="@+id/resumePush"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dip"
+        android:text="@string/resumepush" />
 
-            <Button
-                android:id="@+id/initWeibo"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dip"
-                android:text="@string/sinaweibo" />
-            
-             <Button
-                android:id="@+id/pushmsg"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dip"
-                android:text="@string/pushmsg" />
-               <Button
-                android:id="@+id/gps"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dip"
-                android:text="@string/gps" />
-            
-       
+    <Button
+        android:id="@+id/initWeibo"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dip"
+        android:text="@string/sinaweibo" />
+
+    <Button
+        android:id="@+id/pushmsg"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dip"
+        android:text="@string/pushmsg" />
+
+    <Button
+        android:id="@+id/gps"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dip"
+        android:text="@string/gps" />
+
 </LinearLayout>
