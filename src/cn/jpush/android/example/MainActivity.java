@@ -34,6 +34,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.os.Parcelable;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
@@ -60,6 +61,13 @@ import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
+
+import com.amap.cn.apis.util.Constants;
+import com.amap.mapapi.core.GeoPoint;
+import com.amap.mapapi.map.MapActivity;
+import com.amap.mapapi.map.MapController;
+import com.amap.mapapi.map.MapView;
+import com.amap.mapapi.map.MyLocationOverlay;
 import com.weibo.sdk.android.Oauth2AccessToken;
 import com.weibo.sdk.android.Weibo;
 import com.weibo.sdk.android.WeiboAuthListener;
@@ -75,7 +83,7 @@ import cn.jpush.android.api.InstrumentedActivity;
 import cn.jpush.android.api.JPushInterface;
 import com.ycao.message.R;
 
-public class MainActivity extends InstrumentedActivity implements OnClickListener {
+public class MainActivity extends MapActivity implements OnClickListener {
 	private Weibo mWeibo;
 	private static final String CONSUMER_KEY = "929887641";
 	private static final String REDIRECT_URL = "http://citsm.sinaapp.com/mypushadd.php";
@@ -87,8 +95,9 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 	public View view1 = null;
 	public View view2 = null;
 	public View view3 = null;
+	public View view4 = null;
 	private ImageView cursor;// 动画图片
-	private TextView t1, t2, t3;// 页卡头标
+	private TextView t1, t2, t3, t4;// 页卡头标
 	private int offset = 0;// 动画图片偏移量
 	private int currIndex = 0;// 当前页卡编号
 	private int bmpW;// 动画图片宽度
@@ -97,7 +106,14 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 	public LocationManager manager=null;
 	public SharedPreferences sp = null;
 	public MyLocationListener myLocationListener=null;
+	
+	private MapView mMapView;
+	private MapController mMapController;
+	private GeoPoint point;
+	private MyLocationOverlay mLocationOverlay;
+	
 	SimpleAdapter adapter = null;
+	
 	ArrayList<HashMap<String,Object>> list = new ArrayList<HashMap<String,Object>>();
 	ArrayList<String> list1 = new ArrayList<String>();
 	ImageGetter imgGetter = new Html.ImageGetter() {
@@ -110,11 +126,10 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 	};
 
 	protected void onResume() {
-		
-		
-		Log.i(TAG, "Activity1 onResume called!");
 		super.onResume();
-
+		
+		this.mLocationOverlay.enableMyLocation();
+		
 		SharedPreferences preferences = getSharedPreferences("mypush", MODE_PRIVATE);
 		String lastId = preferences.getString("lastId", "");
 
@@ -162,17 +177,21 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 		view1 = mLi.inflate(R.layout.lay1, null);
 		view2 = mLi.inflate(R.layout.lay2, null);
 		view3 = mLi.inflate(R.layout.lay3, null);
+		view4 = mLi.inflate(R.layout.lay4, null);
 
 		views = new ArrayList<View>();
 		views.add(view1);
 		views.add(view2);
 		views.add(view3);
+		views.add(view4);
 		t1 = (TextView) findViewById(R.id.text1);
 		t2 = (TextView) findViewById(R.id.text2);
 		t3 = (TextView) findViewById(R.id.text3);
+		t4 = (TextView) findViewById(R.id.text4);
 		t1.setOnClickListener(new MyOnClickListener(0));
 		t2.setOnClickListener(new MyOnClickListener(1));
 		t3.setOnClickListener(new MyOnClickListener(2));
+		t4.setOnClickListener(new MyOnClickListener(3));
 		PagerAdapter mPagerAdapter = new PagerAdapter() {
 			public boolean isViewFromObject(View arg0, Object arg1) {
 				return arg0 == arg1;
@@ -302,7 +321,7 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 		//setListAdapter(adapter);
 		//ListView listView = (ListView)view2.findViewById(R.id.ListView01);
        // listView.setAdapter(new ArrayAdapter<String>(this, R.layout.lv,getData()));
-       
+		initMap();
 		try {
 			String id = extra.getString("id");
 			mViewPager.setCurrentItem(2);
@@ -327,10 +346,45 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 		} catch (Exception e) {
 
 		}
-
+		
 	}
+
+		protected void onPause() {
+	    	this.mLocationOverlay.disableMyLocation();
+			super.onPause();
+		}
+
+
+		
+	 private void initMap(){
+		
+		 	mMapView = (MapView) view4.findViewById(R.id.mapView_offlinemap);
+			mMapView.setBuiltInZoomControls(true);  
+			mMapController = mMapView.getController();  
+			point = new GeoPoint((int) (39.90923 * 1E6),
+					(int) (116.397428 * 1E6));  
+			mMapController.setCenter(point);  
+			mMapController.setZoom(12);   
+			mLocationOverlay = new MyLocationOverlay(this, mMapView);
+			mLocationOverlay.enableMyLocation();
+			mMapView.getOverlays().add(mLocationOverlay);
+			
+			mLocationOverlay.runOnFirstFix(new Runnable() {
+	            public void run() {
+	            	handler.sendMessage(Message.obtain(handler, Constants.FIRST_LOCATION));
+	            }
+	        });
+		 
+	 }
+	 private Handler handler = new Handler() {
+			public void handleMessage(Message msg) {
+				Log.i(TAG,msg.what+"sdafsdfsdf");
+				if (msg.what == Constants.FIRST_LOCATION) {
+					mMapController.animateTo(mLocationOverlay.getMyLocation());
+				}
+			}
+	};
 	 private class MyLocationListener implements LocationListener{
-	        
 	        public void onLocationChanged(Location location) {
 	            location.getAccuracy();//精确度
 	            String  latitude = location.getLatitude()+"";//经度
@@ -340,27 +394,17 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 	            editor.commit();
 	            
 	        }
-	        
-	        
 	        public void onStatusChanged(String provider, int status, Bundle extras) {
 	            
-	        }
-	        
-	        
-	        
+	        }       
 	        public void onProviderEnabled(String provider) {
 	            
 	        }
-
-	        
-	        
 	        public void onProviderDisabled(String provider) {
 	            
-	        }
-	        
-	    }
-	public void getList()
-	{
+	        } 
+	};
+	public void getList(){
 		for(int i=0;i<100;i++){
 			HashMap<String,Object> map1 =new HashMap<String,Object>();
 			map1.put("img", R.drawable.ic_launcher);
@@ -368,28 +412,7 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 			map1.put("info",  12.5+i);
 			list.add(map1);
 		}
-;
 	}
-	 private List<Map<String, Object>> getData() {
-	        List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-	 
-	        Map<String, Object> map = new HashMap<String, Object>();
-	        map.put("title", "千杯不醉");
-	        map.put("info", "做人要谦卑，因为谦卑不醉");
-	        map.put("img", R.drawable.ic_launcher);
-	        list.add(map);
-	        map = new HashMap<String, Object>();
-	        map.put("title", "人生际遇");
-	        map.put("info", "很多人闯入你的生活知识为了给你上一课，然后转身离开");
-	        map.put("img", R.drawable.ic_launcher);
-	        list.add(map);
-	        map = new HashMap<String, Object>();
-	        map.put("title", "安卓开发");
-	        map.put("info", "期盼许久你的归来");
-	        map.put("img", R.drawable.ic_launcher);
-	        list.add(map);
-	        return list;
-	    }
 	public class MyPagerAdapter extends PagerAdapter {
 		public List<View> mListViews;
 		public MyPagerAdapter(List<View> mListViews) {
@@ -434,7 +457,15 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 	public class MyOnPageChangeListener implements OnPageChangeListener {
 		int one = offset * 2 + bmpW;
 		int two = one * 2;
+		int three = one * 3;
+
 		public void onPageSelected(int arg0) {
+//			Log.i(TAG, one+"");
+//			Log.i(TAG, two+"");
+//			Log.i(TAG, three+"");
+//			Log.i(TAG, arg0+"");
+//			Log.i(TAG, currIndex+"");
+//			Log.i(TAG, offset+"");		
 			Animation animation = null;
 			switch (arg0) {
 				case 0:
@@ -449,19 +480,29 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 						animation = new TranslateAnimation(offset, one, 0, 0);
 					} else if (currIndex == 2) {
 						animation = new TranslateAnimation(two, one, 0, 0);
+					
 					}
 					break;
 				case 2:
 					if (currIndex == 0) {
-						animation = new TranslateAnimation(offset, two, 0, 0);
+						animation = new TranslateAnimation(two,offset , 0, 0);
 					} else if (currIndex == 1) {
 						animation = new TranslateAnimation(one, two, 0, 0);
+					} else if (currIndex == 3) {
+						animation = new TranslateAnimation(three,two , 0, 0);
+					}
+					break;
+				case 3:
+					
+					if (currIndex == 2) {
+						animation = new TranslateAnimation(offset, three , 0, 0);
+					
 					}
 					break;
 			}
 			currIndex = arg0;
 			animation.setFillAfter(true);
-			animation.setDuration(300);
+			animation.setDuration(200);
 			cursor.startAnimation(animation);
 		}
 
@@ -495,7 +536,7 @@ public class MainActivity extends InstrumentedActivity implements OnClickListene
 		DisplayMetrics dm = new DisplayMetrics();
 		getWindowManager().getDefaultDisplay().getMetrics(dm);
 		int screenW = dm.widthPixels;
-		offset = (screenW / 3 - bmpW) / 2;
+		offset = (screenW / 4 - bmpW) / 2;
 		Matrix matrix = new Matrix();
 		matrix.postTranslate(offset, 0);
 		cursor.setImageMatrix(matrix);

@@ -79,5 +79,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dip"
                 android:text="@string/gps" />
+            
        
 </LinearLayout>
