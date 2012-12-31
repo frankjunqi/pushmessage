@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <issue id="HandlerLeak">
+        <ignore path="src\cn\jpush\android\example\MainActivity.java" />
+        <ignore path="src\com\jj\waterfall\LazyScrollView.java" />
+    </issue>
+    <issue id="SuspiciousImport">
+        <ignore path="src\cn\jpush\android\example\MyReceiver.java" />
+    </issue>
+</lint>

@@ -2,17 +2,13 @@ package cn.jpush.android.example;
 
 
 
-import java.io.Serializable;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.R;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -20,7 +16,6 @@ import android.util.Log;
 import android.view.Gravity;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 import cn.jpush.android.api.JPushInterface;
 
@@ -126,7 +121,7 @@ public class MyReceiver extends BroadcastReceiver {
 	}
 	
 	// 打印所有的 intent extra 数据
-	private static String printBundle(Bundle bundle) {
+	public static String printBundle(Bundle bundle) {
 		StringBuilder sb = new StringBuilder();
 		for (String key : bundle.keySet()) {
 			sb.append("\nkey:" + key + ", value:" + bundle.getString(key));

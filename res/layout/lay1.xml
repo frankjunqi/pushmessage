@@ -45,7 +45,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dip" />
 
-    <Button
+    <!-- <Button
         android:id="@+id/init"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
@@ -57,7 +57,7 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dip"
-        android:text="@string/resumepush" />
+        android:text="@string/resumepush" /> -->
 
     <Button
         android:id="@+id/initWeibo"
@@ -73,11 +73,6 @@
         android:layout_marginTop="8dip"
         android:text="@string/pushmsg" />
 
-    <Button
-        android:id="@+id/gps"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dip"
-        android:text="@string/gps" />
+
 
 </LinearLayout>

@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.ScrollView;
 
 public class LazyScrollView extends ScrollView {
+	@SuppressWarnings("unused")
 	private static final String tag = "LazyScrollView";
 	private Handler handler;
 	private View view;

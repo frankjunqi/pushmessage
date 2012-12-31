@@ -32,7 +32,8 @@ public class TestActivity extends Activity {
 			return drawable;
 		}
 	};
-    @Override
+    @SuppressWarnings("deprecation")
+	@Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Bundle extra = new Bundle();  
