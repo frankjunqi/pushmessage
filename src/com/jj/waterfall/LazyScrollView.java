@@ -86,9 +86,6 @@ public class LazyScrollView extends ScrollView {
 
 	};
 
-	/**
-	 * 获得参�?的View，主要是为了获得它的MeasuredHeight，然后和滚动条的ScrollY+getHeight作比较�?
-	 */
 	public void getView() {
 		this.view = getChildAt(0);
 		if (view != null) {

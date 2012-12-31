@@ -117,7 +117,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	private List<Object> image_filenames = new ArrayList<Object>();
 	private ImageDownLoadAsyncTask asyncTask;
 	private int current_page = 0;// 页码
-	private int count = 40;// 每页显示的个数
+	private int count = 20;// 每页显示的个数
 	private int column = 3;// 显示列数
 	private int item_width;// 每一个item的宽度
 	private Weibo mWeibo;
@@ -177,7 +177,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 					if ((int) ((total * 100) / lenghtOfFile) > 99) {
 						Timer t = new Timer();
-						t.schedule(new MyTask2(), 500);
+						t.schedule(new MyTask2(2), 500);
 
 					}
 
@@ -217,7 +217,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 					if ((int) ((total * 100) / lenghtOfFile) > 99) {
 						Timer t = new Timer();
-						t.schedule(new MyTask2(), 500);
+						t.schedule(new MyTask2(2), 500);
 					}
 					output.write(data, 0, count);
 				}
@@ -564,28 +564,28 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 	}
 
-	@SuppressWarnings("deprecation")
-	public void initImages() {
-		lazyScrollView = (LazyScrollView) findViewById(R.id.waterfall_scroll);
-		lazyScrollView.getView();
-		lazyScrollView.setOnScrollListener(this);
-		waterfall_container = (LinearLayout) findViewById(R.id.waterfall_container);
-		progressbar = (LinearLayout) findViewById(R.id.progressbar);
-		loadtext = (TextView) findViewById(R.id.loadtext);
-
-		item_width = getWindowManager().getDefaultDisplay().getWidth() / column;
-		linearLayouts = new ArrayList<LinearLayout>();
-
-		for (int i = 0; i < column; i++) {
-			LinearLayout layout = new LinearLayout(this);
-			LinearLayout.LayoutParams itemParam = new LinearLayout.LayoutParams(item_width, LayoutParams.WRAP_CONTENT);
-			layout.setOrientation(LinearLayout.VERTICAL);
-			layout.setLayoutParams(itemParam);
-			linearLayouts.add(layout);
-			waterfall_container.addView(layout);
-		}
-
-	}
+//	@SuppressWarnings("deprecation")
+//	public void initImages() {
+//		lazyScrollView = (LazyScrollView) findViewById(R.id.waterfall_scroll);
+//		lazyScrollView.getView();
+//		lazyScrollView.setOnScrollListener(this);
+//		waterfall_container = (LinearLayout) findViewById(R.id.waterfall_container);
+//		progressbar = (LinearLayout) findViewById(R.id.progressbar);
+//		loadtext = (TextView) findViewById(R.id.loadtext);
+//
+//		item_width = getWindowManager().getDefaultDisplay().getWidth() / column;
+//		linearLayouts = new ArrayList<LinearLayout>();
+//
+//		for (int i = 0; i < column; i++) {
+//			LinearLayout layout = new LinearLayout(this);
+//			LinearLayout.LayoutParams itemParam = new LinearLayout.LayoutParams(item_width, LayoutParams.WRAP_CONTENT);
+//			layout.setOrientation(LinearLayout.VERTICAL);
+//			layout.setLayoutParams(itemParam);
+//			linearLayouts.add(layout);
+//			waterfall_container.addView(layout);
+//		}
+//
+//	}
 
 	public Bitmap getBitmap(String imageUrl) {
 		Bitmap mBitmap = null;
@@ -630,13 +630,48 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			switch (msg.what) {
 			case 1:
 				try {
-					getList();
+				
+					String html = sp.getString("lastLualu", "");
+					//Log.i("html", html);
+					if(!html.equals("")){
+						//Alert(getApplicationContext(), html);
+						image_filenames.clear();
+						JSONArray jsonObject = new JSONArray(html);
+						for (int i = 0; i < jsonObject.length(); i++) {
+							JSONObject jsonObject2 = (JSONObject) jsonObject.opt(i);
+							image_filenames.add(jsonObject2);
+						}
+						addImage(current_page, count);
+						loadtext.setVisibility(View.GONE);
+					}else{
+						getList();
+					}
 				} catch (JSONException e) {
 					e.printStackTrace();
 				}
 				break;
 			case 2:
 				m_pDialog.cancel();
+				break;
+			case 3:
+				try {
+					getList();
+				} catch (JSONException e) {
+					
+					e.printStackTrace();
+				}
+				loadtext.setVisibility(View.GONE);
+				break;
+			case 100:
+				String str = (String)msg.obj;
+				Log.i(TAG,str);
+				Alert(getApplicationContext(), str);
+				break;
+			case 10:
+				MyTask obj = (MyTask)msg.obj;
+				//Log.i(TAG,obj.sheight);
+			//	addBitMapToImage(obj.url,obj.h)
+				addBitMapToImage(obj.url, obj.height, obj.index,obj.sheight);
 				break;
 			}
 
@@ -679,7 +714,13 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		try {
 			image_filenames.clear();
 			HttpResponse response = httpClient.execute(getMethod);
-			JSONArray jsonObject = new JSONArray(EntityUtils.toString(response.getEntity(), "utf-8"));
+			String html = EntityUtils.toString(response.getEntity(), "utf-8");
+			
+			
+			SharedPreferences.Editor editor = sp.edit();
+			editor.putString("lastLualu", html);
+			editor.commit();
+			JSONArray jsonObject = new JSONArray(html);
 			for (int i = 0; i < jsonObject.length(); i++) {
 				JSONObject jsonObject2 = (JSONObject) jsonObject.opt(i);
 				image_filenames.add(jsonObject2);
@@ -741,25 +782,43 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			mViewPager.setCurrentItem(index);
 		}
 	};
-
-	private class MyTask2 extends TimerTask {
-		@Override
-		public void run() {
-			Message message = new Message();
-			message.what = 2;
-			handler2.sendMessage(message);
-		}
-	}
-
 	private class MyTask extends TimerTask {
 		@Override
 		public void run() {
 			Message message = new Message();
-			message.what = 1;
+			message.what = this.what;
+			message.obj=this;
 			handler2.sendMessage(message);
 		}
+		private int what = 10;
+		private String url;
+		private int index;
+		private String sheight;
+		private int height;
+		@SuppressWarnings("unused")
+		public MyTask(String url,int height,int index,String sheight){
+			this.url = url;
+			this.height = height;
+			this.index = index;
+			this.sheight = sheight;
+			//addBitMapToImage(url, getMinCol(Integer.parseInt(height)), i, height);
+		}
+	    
 	}
-
+	private class MyTask2 extends TimerTask {
+		@Override
+		public void run() {
+			Message message = new Message();
+			message.what = this.what;
+			handler2.sendMessage(message);
+		}
+		private int what=2;
+		@SuppressWarnings("unused")
+		public MyTask2(int what){
+			this.what = what;
+		}
+	    
+	}
 	public class MyOnPageChangeListener implements OnPageChangeListener {
 		int one = offset * 2 + bmpW;
 		int two = one * 2;
@@ -780,8 +839,10 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				break;
 			case 1:
 				if (cols[0] == 0) {
+					
 					Timer timer = new Timer();
-					timer.schedule(new MyTask(), 300);
+					timer.schedule(new MyTask2(1), 300);
+					//Alert(getApplicationContext(), "333333");
 				}
 				if (currIndex == 0) {
 					animation = new TranslateAnimation(offset, one, 0, 0);
@@ -892,30 +953,49 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		if (!lastImg.equals("")) {
 			api.upload(textwibo.getText().toString(), Environment.getExternalStorageDirectory().getPath() + "/lualu/" + lastImg, "", "", new RequestListener() {
 				public void onComplete(String arg0) {
-					Alert(getApplicationContext(), "upload-发送成功");
+					Message message = new Message();
+					message.what = 100;
+					message.obj="图片-发送成功";
+					handler2.sendMessage(message);
+					//Alert(getApplicationContext(), "");
 				}
 
 				public void onError(WeiboException arg0) {
-					Alert(getApplicationContext(), "upload-错误-" + arg0.getMessage());
+					Message message = new Message();
+					message.what = 100;
+					message.obj="图片-发送错误-" + arg0.getMessage();
+					handler2.sendMessage(message);
+					
 				}
 
 				public void onIOException(IOException arg0) {
-					Alert(getApplicationContext(), "upload-异常-" + arg0.getMessage());
+					Message message = new Message();
+					message.what = 100;
+					message.obj="图片-发送异常-" + arg0.getMessage();
+					handler2.sendMessage(message);
 				}
 			});
 		} else {
 			Log.i("update", tv.getText().toString());
 			api.update(textwibo.getText().toString(), "", "", new RequestListener() {
 				public void onComplete(String arg0) {
-					Alert(getApplicationContext(), "update-发送成功");
+					Message message = new Message();
+					message.what = 100;
+					message.obj="文字-发送成功";
 				}
 
 				public void onError(WeiboException arg0) {
-					Alert(getApplicationContext(), "update-错误-" + arg0.getMessage());
+					Message message = new Message();
+					message.what = 100;
+					message.obj="文字-发送错误-" + arg0.getMessage();
+					handler2.sendMessage(message);
 				}
 
 				public void onIOException(IOException arg0) {
-					Alert(getApplicationContext(), "update-异常-" + arg0.getMessage());
+					Message message = new Message();
+					message.what = 100;
+					message.obj="文字-发送异常-" + arg0.getMessage();
+					handler2.sendMessage(message);
 				}
 			});
 		}
@@ -936,8 +1016,8 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			MainActivity.accessToken = new Oauth2AccessToken(token, expires_in);
 			if (MainActivity.accessToken.isSessionValid()) {
 
-				SharedPreferences preferences = getSharedPreferences("mypush", MODE_PRIVATE);
-				SharedPreferences.Editor editor = preferences.edit();
+				
+				SharedPreferences.Editor editor = sp.edit();
 				editor.putString("token", token);
 				editor.putString("expires_in", expires_in);
 				editor.commit();
@@ -974,8 +1054,8 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 											tagSet.add(sTagItme);
 										}
 										JPushInterface.setAliasAndTags(getApplicationContext(), null, tagSet);
-										SharedPreferences preferences = getSharedPreferences("mypush", MODE_PRIVATE);
-										SharedPreferences.Editor editor = preferences.edit();
+										
+										SharedPreferences.Editor editor = sp.edit();
 										editor.putString("tagName", ("android,all," + strname));
 										editor.commit();
 									} catch (JSONException e) {
@@ -1107,7 +1187,6 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	 */
 	private void addImage(int current_page, int count) {
 		int imagecount = image_filenames.size();
-		Log.i(TAG, imagecount + "");
 		for (int i = 0; i < imagecount; i++) {
 			JSONObject obj = (JSONObject) image_filenames.get(i);
 			String domain = "";
@@ -1124,7 +1203,11 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 			}
 			if (!filename.equals("") && Integer.parseInt(height) < 300) {
+//				Timer t = new Timer();
+//				TimerTask tk= new MyTask(url, getMinCol(Integer.parseInt(height)), i, height);
+//				t.schedule(tk, 80*i);
 				addBitMapToImage(url, getMinCol(Integer.parseInt(height)), i, height);
+				
 			}
 		}
 
@@ -1211,26 +1294,21 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	 */
 	public Bitmap getBitmapBounds(String imageName) {
 		return getBitmap(imageName);
-
 	}
-
 	public void onBottom() {
 		current_page = current_page + count;
-		Log.i(TAG, "onBottom");
-		try {
-			getList();
-		} catch (JSONException e) {
-
-		}
-
+		loadtext.setVisibility(View.VISIBLE);
+	
+		Timer t = new Timer();
+		TimerTask tk= new MyTask2(3);
+		t.schedule(tk, 500);
+			
+		
 	}
-
 	public void onTop() {
-
+		
 	}
-
 	public void onScroll() {
-
+		
 	}
-
 }
