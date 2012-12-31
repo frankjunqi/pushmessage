@@ -32,7 +32,7 @@ import android.widget.TextView;
  */
 public class ImageDownLoadAsyncTask extends AsyncTask<Void, Void, Bitmap> {
 	private ExecutorService executorService; // 固定五个线程来
-    private ImageMemoryCache memoryCache;// 内存缓存
+    //private ImageMemoryCache memoryCache;// 内存缓存
     private ImageFileCache fileCache;// 文件缓存
     private Map<String, ImageView> taskMap;// 存放任务
 	private String imagePath;
@@ -57,7 +57,7 @@ public class ImageDownLoadAsyncTask extends AsyncTask<Void, Void, Bitmap> {
 		this.Image_width = Image_width;
 		//executorService = Executors.newFixedThreadPool(20);
 
-        memoryCache = new ImageMemoryCache();
+      //  memoryCache = new ImageMemoryCache();
         fileCache = new ImageFileCache();
         taskMap = new HashMap<String, ImageView>();
 		
@@ -104,22 +104,19 @@ public class ImageDownLoadAsyncTask extends AsyncTask<Void, Void, Bitmap> {
 	public Bitmap getBitmap(String imageUrl) {
 		
 		Bitmap result;
-        result = memoryCache.getBitmapFromCache(imageUrl);
-        if (result == null) {
+       // result = memoryCache.getBitmapFromCache(imageUrl);
+        //if (result == null) {
             // 文件缓存中获取
             result = fileCache.getImage(imageUrl);
             if (result == null) {
                 // 从网络获取
                 result = ImageGetForHttp.downloadBitmap(imageUrl);
-//                if (result != null) {
+                if (result != null) {
 //                    memoryCache.addBitmapToCache(imageUrl, result);
-//                    fileCache.saveBmpToSd(result, imageUrl);                    
-//                }
-            } else {
-                // 添加到内存缓存
-                //memoryCache.addBitmapToCache(imageUrl, result);
+                    fileCache.saveBmpToSd(result, imageUrl);                    
+                }
             }
-        }
+        //}
         return result;
         
 		/*Bitmap mBitmap = null;

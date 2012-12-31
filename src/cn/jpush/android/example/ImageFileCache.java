@@ -16,7 +16,7 @@ import android.util.Log;
 
 public class ImageFileCache {
 	private static final String CACHDIR = "lualu";
-	private static final String WHOLESALE_CONV = ".cach";
+	private static final String WHOLESALE_CONV = "";
 	/** 过期时间3天 **/
 	private static final long mTimeDiff = 10 * 24 * 60 * 60 * 1000;
 
