@@ -2,6 +2,8 @@ package cn.jpush.android.example;
 
 
 
+import java.io.Serializable;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -18,6 +20,7 @@ import android.util.Log;
 import android.view.Gravity;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 import cn.jpush.android.api.JPushInterface;
 
@@ -30,6 +33,8 @@ import cn.jpush.android.api.JPushInterface;
  */
 public class MyReceiver extends BroadcastReceiver {
 	private static final String TAG = "MyReceiver";
+	public  final static String SER_KEY = "com.yue.pushmessage";  
+    public  final static String PAR_KEY = "com.yue.pushmessage";  
 	public void Alert(Context context,String msg){
 		Toast toast = Toast.makeText(context,msg, Toast.LENGTH_LONG);
         toast.setGravity(Gravity.CENTER, 0, 0);
@@ -44,7 +49,7 @@ public class MyReceiver extends BroadcastReceiver {
 	public void onReceive(Context context, Intent intent) {
         Bundle bundle = intent.getExtras();
        // abortBroadcast(); 
-		Log.d(TAG, "onReceive - " + intent.getAction() + ", extras: " + printBundle(bundle));
+		//Log.d(TAG, "onReceive - " + intent.getAction() + ", extras: " + printBundle(bundle));
 		
         if (JPushInterface.ACTION_REGISTRATION_ID.equals(intent.getAction())) {
             String regId = bundle.getString(JPushInterface.EXTRA_REGISTRATION_ID);
@@ -52,6 +57,27 @@ public class MyReceiver extends BroadcastReceiver {
             //send the Registration Id to your server...
         } else if (JPushInterface.ACTION_MESSAGE_RECEIVED.equals(intent.getAction())) {
         	Log.d(TAG, "接收到推送下来的自定义消息: " + bundle.getString(JPushInterface.EXTRA_MESSAGE));
+        	Bundle bundle1 = new Bundle();
+           
+    		String cmd =  bundle.getString("cn.jpush.android.MESSAGE");
+			 Person mPerson = new Person();  
+			 mPerson.setMethod("cmd");  
+			 mPerson.setArgs(cmd);  
+			 bundle1.putSerializable(SER_KEY,mPerson);
+        	Intent i = new Intent(context, MainActivity.class);
+        	i.putExtras(bundle1);
+        	i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        	
+        	SharedPreferences preferences =  context.getSharedPreferences("mypush", Activity.MODE_PRIVATE);
+			SharedPreferences.Editor editor = preferences.edit();
+			editor.putString("lastCmd",cmd);
+			editor.commit();
+			
+        	context.startActivity(i);
+        	
+        	
+     
+
         
         } else if (JPushInterface.ACTION_NOTIFICATION_RECEIVED.equals(intent.getAction())) {
             Log.d(TAG, "接收到推送下来的通知");
@@ -78,7 +104,10 @@ public class MyReceiver extends BroadcastReceiver {
     		sb.append("\n"+id);
             bundle1.putString("content", sb.toString());
             bundle1.putString("id", id);
-          
+            Person mPerson = new Person();  
+            mPerson.setMethod("id");  
+            mPerson.setArgs(id);  
+            bundle1.putSerializable(SER_KEY,mPerson);
         	Intent i = new Intent(context, MainActivity.class);
         	
         	i.putExtras(bundle1);
@@ -95,7 +124,7 @@ public class MyReceiver extends BroadcastReceiver {
         	Log.d(TAG, "Unhandled intent - " + intent.getAction());
         }
 	}
-
+	
 	// 打印所有的 intent extra 数据
 	private static String printBundle(Bundle bundle) {
 		StringBuilder sb = new StringBuilder();
@@ -105,5 +134,7 @@ public class MyReceiver extends BroadcastReceiver {
 		return sb.toString();
 	}
 	
-
+	
+    
+     
 }

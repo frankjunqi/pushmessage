@@ -42,6 +42,7 @@ import org.json.JSONTokener;
 
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.res.AssetManager;
@@ -179,30 +180,64 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 	ArrayList<HashMap<String, Object>> list = new ArrayList<HashMap<String, Object>>();
 	ArrayList<String> list1 = new ArrayList<String>();
+	ImageGetter imgGetter2 = new Html.ImageGetter() {
+		public Drawable getDrawable(String source) {
+			showProgress();
+				lastImg =source.split("/")[source.split("/").length-1];
+			
+				Drawable d = null;
+			 
+			try {
+				URL aryURI = new URL(source);
+
+				URLConnection conn = aryURI.openConnection();
+				conn.connect();
+				
+				int lenghtOfFile = conn.getContentLength();
+				InputStream input = new BufferedInputStream(aryURI.openStream());
+				OutputStream output = new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/lualu/"+lastImg);
+
+				byte data[] = new byte[1024];
+
+				long total = 0;
+				int count=0;
+				while (( count = input.read(data)) != -1) {
+					total += count;
+					m_pDialog.setProgress((int) ((total * 100) / lenghtOfFile));
+
+					if((int) ((total * 100) / lenghtOfFile)>99){
+						Timer t = new Timer();
+						t.schedule(new MyTask2(), 500);
+						
+					}
+
+					output.write(data, 0, count);
+				}
+
+				output.flush();
+				output.close();
+				input.close();
+				
+				InputStream is = conn.getInputStream();
+
+				d = Drawable.createFromStream(is, "");
+
+				is.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			Log.i(TAG, source+d.getIntrinsicWidth()+d.getIntrinsicHeight());
+			d.setBounds(0, 0, d.getIntrinsicWidth() , d.getIntrinsicHeight());
+			return d;
+		}
+	};
 	ImageGetter imgGetter = new Html.ImageGetter() {
 		public Drawable getDrawable(String source) {
 			Log.i(TAG, source);
 
 			//new DownloadFileAsync().execute(source);
-			Drawable d = null;
-			
-			  m_count = 0;
-   
-              m_pDialog = new ProgressDialog(MainActivity.this);
- 
-              m_pDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-
-              m_pDialog.setTitle("下载中...");
-
-              m_pDialog.setIcon(R.drawable.ic_launcher);
-    
-              m_pDialog.setProgress(0);
-        
-           //   m_pDialog.setIndeterminate(false);
-          
-              m_pDialog.setCancelable(true);
-             
-              m_pDialog.show();
+				Drawable d = null;
+			 
 			try {
 				URL aryURI = new URL(source);
 
@@ -212,19 +247,22 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				int lenghtOfFile = conn.getContentLength();
 				
 				InputStream input = new BufferedInputStream(aryURI.openStream());
-				OutputStream output = new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/lualu.jpg");
+				OutputStream output = new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/lualu/"+lastImg);
 
 				byte data[] = new byte[1024];
 
 				long total = 0;
-
-				while ((count = input.read(data)) != -1) {
+				int count=0;
+				while (( count = input.read(data)) != -1) {
 					total += count;
+					m_pDialog.setProgress((int) ((total * 100) / lenghtOfFile));
+
 					if((int) ((total * 100) / lenghtOfFile)>99){
-						m_pDialog.cancel();
+						Timer t = new Timer();
+						t.schedule(new MyTask2(), 500);
+						
 					}
 
-					
 					output.write(data, 0, count);
 				}
 
@@ -277,7 +315,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				int lenghtOfFile = conexion.getContentLength();
 				
 				InputStream input = new BufferedInputStream(url.openStream());
-				OutputStream output = new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/lualu.jpg");
+				OutputStream output = new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/lualu/"+lastImg);
 
 				byte data[] = new byte[1024];
 
@@ -312,12 +350,13 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 	protected void onResume() {
 		super.onResume();
-
-		SharedPreferences preferences = getSharedPreferences("mypush", MODE_PRIVATE);
-		String lastId = preferences.getString("lastId", "");
+		
+		
+		String lastId = sp.getString("lastId", "");
+		String lastCmd = sp.getString("lastCmd", "");
 
 		if (!lastId.equals("")) {
-			SharedPreferences.Editor editor = preferences.edit();
+			SharedPreferences.Editor editor = sp.edit();
 			editor.putString("lastId", "");
 			editor.commit();
 			String id = lastId;
@@ -332,12 +371,22 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			try {
 				HttpResponse response = httpClient.execute(getMethod); // 发起GET请求
 				TextView tv = (TextView) view3.findViewById(R.id.txtView);
-				tv.setText(Html.fromHtml(EntityUtils.toString(response.getEntity(), "utf-8"), imgGetter, null));
+				tv.setText(Html.fromHtml(EntityUtils.toString(response.getEntity(), "utf-8"), imgGetter2, null));
 			} catch (ClientProtocolException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+		}
+		
+		if (!lastCmd.equals("")) {
+			SharedPreferences.Editor editor = sp.edit();
+			editor.putString("lastCmd", "");
+			editor.commit();
+			mViewPager.setCurrentItem(0);
+			TextView tv = (TextView) view1.findViewById(R.id.tv_appkey);
+			tv.setText(lastCmd);
+	
 		}
 	}
 
@@ -348,58 +397,21 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		setContentView(R.layout.main);
 		getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.title);
 
+		File file = new File( Environment.getExternalStorageDirectory().getPath() + "/lualu/"); 
+        if (!file.exists()) { 
+            try { 
+                file.mkdirs(); 
+            } catch (Exception e) { 
+
+            } 
+        } 
 		sp = getSharedPreferences("mypush", MODE_PRIVATE);
 		SharedPreferences.Editor editor = sp.edit();
 		editor.putString("lastId", "");
 		editor.commit();
 
-		mViewPager = (ViewPager) findViewById(R.id.viewpager);
-
-		LayoutInflater mLi = LayoutInflater.from(this);
-		view1 = mLi.inflate(R.layout.lay1, null);
-		view2 = mLi.inflate(R.layout.lay2, null);
-		view3 = mLi.inflate(R.layout.lay3, null);
-		view4 = mLi.inflate(R.layout.lay4, null);
-
-		views = new ArrayList<View>();
-		views.add(view1);
-		views.add(view2);
-		views.add(view3);
-		views.add(view4);
-
-		t1 = (TextView) findViewById(R.id.text1);
-		t2 = (TextView) findViewById(R.id.text2);
-		t3 = (TextView) findViewById(R.id.text3);
-		t4 = (TextView) findViewById(R.id.text4);
-
-		t1.setOnClickListener(new MyOnClickListener(0));
-		t2.setOnClickListener(new MyOnClickListener(1));
-		t3.setOnClickListener(new MyOnClickListener(2));
-		t4.setOnClickListener(new MyOnClickListener(3));
-
-		PagerAdapter mPagerAdapter = new PagerAdapter() {
-			public boolean isViewFromObject(View arg0, Object arg1) {
-				return arg0 == arg1;
-			}
-
-			public int getCount() {
-				return views.size();
-			}
-
-			public void destroyItem(View container, int position, Object object) {
-				((ViewPager) container).removeView(views.get(position));
-			}
-
-			public Object instantiateItem(View container, int position) {
-				((ViewPager) container).addView(views.get(position));
-				return views.get(position);
-			}
-		};
-		mViewPager.setAdapter(mPagerAdapter);
-
-		InitImageView();
-		mViewPager.setOnPageChangeListener(new MyOnPageChangeListener());
-
+		initViewPage();
+	
 		initView();
 
 		zoomControls = (ZoomControls) view3.findViewById(R.id.zoomcontrols);
@@ -419,13 +431,6 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				tv.setTextSize(size);
 			}
 		});
-		// try {
-		// getList();
-		// } catch (JSONException e1) {
-		//
-		// e1.printStackTrace();
-		// }
-
 		Button btnWeibo = (Button) view1.findViewById(R.id.initWeibo);
 		btnWeibo.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
@@ -514,20 +519,45 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		});
 
 		initMap();
-		Bundle extra = new Bundle();
-		extra = getIntent().getExtras();
+		
+		
+		
 		try {
-			String id = extra.getString("id");
+		
+			Person mPerson =  (Person)getIntent().getSerializableExtra(MyReceiver.SER_KEY);
+			if(mPerson!=null){
+				
+				createByParam(mPerson);
+			}
+//			if(!mPerson.equals(null)){
+//				
+//			}
+//			extra = it.getExtras();
+//			createByParam(extra);
+			
+		} catch (Exception e) {
+			Log.i(TAG,e.getMessage());
+		}
+		Log.i(TAG,"98s9adf98asdf989as8dfsd");
+
+	}
+	public void createByParam(Person mPerson){
+		
+		
+		
+		String method = mPerson.getMethod();
+		String args =  mPerson.getArgs();  
+		if(method.equals("id")){
 			mViewPager.setCurrentItem(2);
 			List<BasicNameValuePair> params = new LinkedList<BasicNameValuePair>();
-			params.add(new BasicNameValuePair("id", id));
-
+			params.add(new BasicNameValuePair("id", args));
+	
 			String param = URLEncodedUtils.format(params, "UTF-8");
 			String baseUrl = "http://citsm.sinaapp.com/getpush.php";
 			HttpGet getMethod = new HttpGet(baseUrl + "?" + param);
-
+	
 			HttpClient httpClient = new DefaultHttpClient();
-
+	
 			try {
 				HttpResponse response = httpClient.execute(getMethod); // 发起GET请求
 				TextView tv = (TextView) view3.findViewById(R.id.txtView);
@@ -537,12 +567,66 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		} catch (Exception e) {
-
 		}
-
+		if(method.equals("cmd")){
+			
+			mViewPager.setCurrentItem(0);
+			TextView tv = (TextView) view1.findViewById(R.id.tv_appkey);
+			tv.setText(args);
+			
+		}
+		
 	}
+    public void initViewPage(){
+    	
+    	mViewPager = (ViewPager) findViewById(R.id.viewpager);
 
+		LayoutInflater mLi = LayoutInflater.from(this);
+		view1 = mLi.inflate(R.layout.lay1, null);
+		view2 = mLi.inflate(R.layout.lay2, null);
+		view3 = mLi.inflate(R.layout.lay3, null);
+		view4 = mLi.inflate(R.layout.lay4, null);
+
+		views = new ArrayList<View>();
+		views.add(view1);
+		views.add(view2);
+		views.add(view3);
+		views.add(view4);
+
+		t1 = (TextView) findViewById(R.id.text1);
+		t2 = (TextView) findViewById(R.id.text2);
+		t3 = (TextView) findViewById(R.id.text3);
+		t4 = (TextView) findViewById(R.id.text4);
+
+		t1.setOnClickListener(new MyOnClickListener(0));
+		t2.setOnClickListener(new MyOnClickListener(1));
+		t3.setOnClickListener(new MyOnClickListener(2));
+		t4.setOnClickListener(new MyOnClickListener(3));
+
+		PagerAdapter mPagerAdapter = new PagerAdapter() {
+			public boolean isViewFromObject(View arg0, Object arg1) {
+				return arg0 == arg1;
+			}
+
+			public int getCount() {
+				return views.size();
+			}
+
+			public void destroyItem(View container, int position, Object object) {
+				((ViewPager) container).removeView(views.get(position));
+			}
+
+			public Object instantiateItem(View container, int position) {
+				((ViewPager) container).addView(views.get(position));
+				return views.get(position);
+			}
+		};
+		mViewPager.setAdapter(mPagerAdapter);
+
+		InitImageView();
+		mViewPager.setOnPageChangeListener(new MyOnPageChangeListener());
+    	
+    }
 	public void initImages() {
 		lazyScrollView = (LazyScrollView) findViewById(R.id.waterfall_scroll);
 		lazyScrollView.getView();
@@ -613,6 +697,9 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 					e.printStackTrace();
 				}
 				break;
+			case 2:
+				m_pDialog.cancel();
+				break;
 			}
 
 		}
@@ -643,7 +730,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	};
 
 	public void getList() throws JSONException {
-
+		Log.i(TAG,"getList"+current_page);
 		List<BasicNameValuePair> params = new LinkedList<BasicNameValuePair>();
 		params.add(new BasicNameValuePair("offset", current_page + ""));
 		params.add(new BasicNameValuePair("limit", count + ""));
@@ -716,15 +803,21 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			mViewPager.setCurrentItem(index);
 		}
 	};
+	private class MyTask2 extends TimerTask {
+		@Override
+		public void run() {
+			Message message = new Message();
+			message.what = 2;
+			handler2.sendMessage(message);
+		}
+	}
 
 	private class MyTask extends TimerTask {
 		@Override
 		public void run() {
-
 			Message message = new Message();
 			message.what = 1;
 			handler2.sendMessage(message);
-
 		}
 	}
 
@@ -749,12 +842,9 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 				break;
 			case 1:
-
 				if (cols[0] == 0) {
 					Timer timer = new Timer();
 					timer.schedule(new MyTask(), 300);
-					// timer.cancel();
-
 				}
 
 				if (currIndex == 0) {
@@ -876,7 +966,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 		if (!lastImg.equals("")) {
 			Log.i("upload", tv.getText().toString());
-			api.upload(textwibo.getText().toString(), Environment.getExternalStorageDirectory().getPath() + "/lualu.jpg", "", "", new RequestListener() {
+			api.upload(textwibo.getText().toString(), Environment.getExternalStorageDirectory().getPath() + "/lualu/"+lastImg, "", "", new RequestListener() {
 				public void onComplete(String arg0) {
 					//Log.i(TAG, arg0);
 					sendPush("发送成功 ");
@@ -1135,7 +1225,18 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		return col;
 
 	}
+	public void showProgress(){
+		
+		  m_count = 0;
+          m_pDialog = new ProgressDialog(MainActivity.this);
+          m_pDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+          m_pDialog.setTitle("下载中...");
+          m_pDialog.setIcon(R.drawable.ic_launcher);
+          m_pDialog.setProgress(0);
 
+          m_pDialog.setCancelable(true);
+          m_pDialog.show();
+	}
 	private void addBitMapToImage(String imageName, int j, int i, String height) {
 		ImageView imageView = getImageview(imageName, height);
 		asyncTask = new ImageDownLoadAsyncTask(this, imageName, imageView, item_width);
@@ -1150,9 +1251,10 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 		imageView.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
-
+				showProgress();
 				TextView tv = (TextView) view3.findViewById(R.id.txtView);
-				lastImg = v.getTag().toString().replace("!192", "");
+				String filename =  v.getTag().toString().replace("!192", "");
+				lastImg =filename.split("/")[filename.split("/").length-1];
 				tv.setText(Html.fromHtml("<img  src=\"" + v.getTag().toString().replace("!192", "") + "\"/>", imgGetter, null));
 				mViewPager.setCurrentItem(2);
 
@@ -1188,7 +1290,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 	public void onBottom() {
 		current_page = current_page + count;
-
+		Log.i(TAG,"onBottom");
 		try {
 			getList();
 		} catch (JSONException e) {
