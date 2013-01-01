@@ -11,6 +11,7 @@
         android:layout_width="fill_parent"
         android:layout_height="40.0dip"
          android:layout_marginTop="2dip"
+         android:textStyle="bold"
         android:background="#FFFFFF" >
 
         <TextView
@@ -19,7 +20,8 @@
             android:layout_height="fill_parent"
             android:layout_weight="1.0"
             android:gravity="center"
-            android:text="配置"
+             android:textStyle="bold"
+            android:text="我的微博"
             android:textColor="#000000"
             android:textSize="18.0dip" />
 
@@ -29,6 +31,7 @@
             android:layout_height="fill_parent"
             android:layout_weight="1.0"
             android:gravity="center"
+             android:textStyle="bold"
             android:text="来一发"
           
             android:textSize="18.0dip" />
@@ -39,6 +42,7 @@
             android:layout_height="fill_parent"
             android:layout_weight="1.0"
             android:gravity="center"
+             android:textStyle="bold"
             android:text="明细"
           
             android:textSize="18.0dip" />
@@ -49,6 +53,7 @@
             android:layout_height="fill_parent"
             android:layout_weight="1.0"
             android:gravity="center"
+             android:textStyle="bold"
             android:text="地图"
           
             android:textSize="18.0dip" />

@@ -22,7 +22,7 @@ public class ImageFileCache {
 
 	public ImageFileCache() {
 		// 清理文件缓存
-		removeCache(getDirectory());
+		//removeCache(getDirectory());
 	}
 
 	public Bitmap getImage(final String url) {

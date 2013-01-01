@@ -12,13 +12,19 @@
     <string name="error_network">网络连接异常,初始化失败 请检查网络！</string>
     <string name="logining">程序在后台执行, 请查看日志！</string>
     <string name="setting_su">设置成功</string>
-	<string name="initpush">开启</string>
+    <string name="initpush">开启</string>
     <string name="stoppush">停止</string>
     <string name="resumepush">暂停</string>
     <string name="adv">高级</string>
-     <string name="sinaweibo">绑定新浪微博</string>  
-      <string name="versionNumber">1.0.2</string>      
-       <string name="pushmsg">自推</string>  
-     
-  <string name="gps">开启定位</string> 
+    <string name="sinaweibo">绑定新浪微博</string>
+    <string name="versionNumber">1.0.2</string>
+    <string name="pushmsg">自推</string>
+    <string name="gps">开启定位</string>
+    <string name="pulltorefresh">提示...</string>
+    <string name="lastupdate">最近更新</string>
+    <string name="drop_down_to_refresh_list_pull_tips">下拉可以更新</string>
+    <string name="drop_down_to_refresh_list_release_tips">松开即可更新</string>
+    <string name="drop_down_to_refresh_list_refreshing_tips">正在更新中...</string>
+    <string name="drop_down_to_refresh_list_refresh_view_tips">点击更新</string>
+    <drawable name="bkcolor">#000</drawable>
 </resources>

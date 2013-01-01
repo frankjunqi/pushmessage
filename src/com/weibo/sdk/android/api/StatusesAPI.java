@@ -107,8 +107,7 @@ public class StatusesAPI extends WeiboAPI {
 	 * @param trim_user 返回值中user字段开关，false：返回完整user字段、true：user字段仅返回user_id，默认为false。
 	 * @param listener
 	 */
-	public void homeTimeline( long since_id, long max_id, int count, int page,
-			boolean base_app, FEATURE feature, boolean trim_user, RequestListener listener) {
+	public void homeTimeline( long since_id, long max_id, int count, int page,boolean base_app, FEATURE feature, boolean trim_user, RequestListener listener) {
 		WeiboParameters params = new WeiboParameters();
 		params.add("since_id", since_id);
 		params.add("max_id", max_id);

@@ -16,6 +16,7 @@
             android:id="@+id/txtView"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
+            android:autoLink="all"
             android:gravity="center_horizontal" />
 
         <ZoomControls
@@ -27,20 +28,21 @@
         <EditText
             android:id="@+id/editText1"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="120.0dip"
             android:ems="10"
+            android:gravity="top|center_vertical"
             android:inputType="textMultiLine" >
+
         </EditText>
 
         <Button
             android:id="@+id/button1"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_centerHorizontal="true"
-            android:gravity="center_horizontal"
+            android:gravity="center_vertical|center_horizontal"
             android:text="来一发"
             android:textSize="20sp" />
+
     </LinearLayout>
 
 </ScrollView>

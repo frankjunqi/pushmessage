@@ -2,18 +2,28 @@
 <LinearLayout  
   xmlns:android="http://schemas.android.com/apk/res/android"  
   android:layout_width="wrap_content"  
+  android:textStyle="bold"
   android:layout_height="wrap_content" >    
-  <ImageView android:layout_width="wrap_content"    
-        android:layout_height="wrap_content" 
-         android:layout_marginTop="30px" 
-          android:layout_marginRight="10px" 
- android:layout_alignParentLeft="true" 
-        android:src="@drawable/chart_stock"/>  
-   <TextView android:id="@+id/text"    
-        android:layout_width="wrap_content"    
-        android:layout_height="wrap_content"    
-        android:layout_alignParentLeft="true" 
-         android:textColor="#FF8684"
-         android:layout_marginTop="35px" 
-        android:text="@string/app_name" />      
+
+  <ImageView
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_alignParentLeft="true"
+      android:layout_marginRight="10px"
+      android:layout_marginTop="20px"
+      android:paddingLeft="5dp"
+      android:src="@drawable/chart_stock" />
+
+   <TextView
+       android:id="@+id/text"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:textStyle="bold"
+      android:layout_centerInParent="true"  
+        android:layout_alignParentRight="true"  
+       android:layout_marginTop="22px"
+       
+       android:text="@string/app_name"
+       android:textColor="#FF8684" />
+      
 </LinearLayout>  
