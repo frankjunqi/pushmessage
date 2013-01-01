@@ -43,6 +43,7 @@ import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.location.Criteria;
 import android.location.Location;
@@ -155,6 +156,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	public ProgressDialog m_pDialog;
 	public SimpleAdapter adapter = null;
 	public ArrayList<HashMap<String, Object>> list = new ArrayList<HashMap<String, Object>>();
+	 private ImageFileCache fileCache;// 文件缓存
 	public ArrayList<String> list1 = new ArrayList<String>();
 	public ImageGetter imgGetter2 = new Html.ImageGetter() {
 		public Drawable getDrawable(String source) {
@@ -171,6 +173,8 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				byte data[] = new byte[1024];
 				long total = 0;
 				int count = 0;
+				
+				
 				while ((count = input.read(data)) != -1) {
 					total += count;
 					m_pDialog.setProgress((int) ((total * 100) / lenghtOfFile));
@@ -189,49 +193,74 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				InputStream is = conn.getInputStream();
 				d = Drawable.createFromStream(is, "");
 				is.close();
+				Log.i(TAG, source + d.getIntrinsicWidth() + d.getIntrinsicHeight());
+				d.setBounds(0, 0, d.getIntrinsicWidth(), d.getIntrinsicHeight());
 			} catch (IOException e) {
-				e.printStackTrace();
+				//e.printStackTrace();
 			}
-			Log.i(TAG, source + d.getIntrinsicWidth() + d.getIntrinsicHeight());
-			d.setBounds(0, 0, d.getIntrinsicWidth(), d.getIntrinsicHeight());
+			
 			return d;
 		}
 	};
 	ImageGetter imgGetter = new Html.ImageGetter() {
 		public Drawable getDrawable(String source) {
 			Drawable d = null;
+			Bitmap b = null;
 			try {
-				URL aryURI = new URL(source);
-				URLConnection conn = aryURI.openConnection();
-				conn.connect();
-				int lenghtOfFile = conn.getContentLength();
-				InputStream input = new BufferedInputStream(aryURI.openStream());
-				OutputStream output = new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/lualu/" + lastImg);
-
-				byte data[] = new byte[1024];
-				long total = 0;
-				int count = 0;
-				while ((count = input.read(data)) != -1) {
-					total += count;
-					m_pDialog.setProgress((int) ((total * 100) / lenghtOfFile));
-
-					if ((int) ((total * 100) / lenghtOfFile) > 99) {
-						Timer t = new Timer();
-						t.schedule(new MyTask2(2), 500);
+	
+				 b = fileCache.getImage(source);
+				 
+	            if (b!= null) {
+	            	m_pDialog.setTitle("读取中...");
+	            	
+	                @SuppressWarnings("deprecation")
+					Drawable drawable = new BitmapDrawable(b); 
+	                Log.i(TAG,"asdfasdfasdfsadfsdf");
+	                d =  drawable;
+	                m_pDialog.cancel();
+	               
+	            }else{
+					
+					URL aryURI = new URL(source);
+					URLConnection conn = aryURI.openConnection();
+					conn.connect();
+					int lenghtOfFile = conn.getContentLength();
+					InputStream input = new BufferedInputStream(aryURI.openStream());
+					OutputStream output = new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/lualu/" + lastImg);
+	
+					byte data[] = new byte[1024];
+					long total = 0;
+					int count = 0;
+					while ((count = input.read(data)) != -1) {
+						total += count;
+						m_pDialog.setProgress((int) ((total * 100) / lenghtOfFile));
+	
+						if ((int) ((total * 100) / lenghtOfFile) > 99) {
+							Timer t = new Timer();
+							t.schedule(new MyTask2(2), 500);
+						}
+						output.write(data, 0, count);
 					}
-					output.write(data, 0, count);
-				}
-				output.flush();
-				output.close();
-				input.close();
-				InputStream is = conn.getInputStream();
-				d = Drawable.createFromStream(is, "");
-				is.close();
+					output.flush();
+					output.close();
+					input.close();
+					InputStream is = conn.getInputStream();
+					d = Drawable.createFromStream(is, "");
+					is.close();
+	            }
+	            //if(d.getIntrinsicWidth()<getWindowManager().getDefaultDisplay().getWidth()){
+	            	int fixA = getWindowManager().getDefaultDisplay().getHeight()/d.getIntrinsicHeight();
+	            	int fixB =d.getIntrinsicHeight()/getWindowManager().getDefaultDisplay().getHeight();
+	            	int fixC = fixA>fixB?fixA:fixB;
+	            	d.setBounds(0, 0,  getWindowManager().getDefaultDisplay().getWidth(), (d.getIntrinsicHeight()*fixC*10)/10);
+	           // }else{
+	            	//d.setBounds(0, 0, getWindowManager().getDefaultDisplay().getWidth(), getWindowManager().getDefaultDisplay().getHeight());
+	           // }
 			} catch (IOException e) {
-				e.printStackTrace();
+				//e.printStackTrace();
 			}
 
-			d.setBounds(0, 0, d.getIntrinsicWidth() * 3, d.getIntrinsicHeight() * 3);
+			
 			return d;
 		}
 	};
@@ -325,9 +354,9 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				TextView tv = (TextView) view3.findViewById(R.id.txtView);
 				tv.setText(Html.fromHtml(EntityUtils.toString(response.getEntity(), "utf-8"), imgGetter2, null));
 			} catch (ClientProtocolException e) {
-				e.printStackTrace();
+				//e.printStackTrace();
 			} catch (IOException e) {
-				e.printStackTrace();
+				//e.printStackTrace();
 			}
 		}
 
@@ -360,7 +389,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 			}
 		}
-
+		fileCache = new ImageFileCache();
 		sp = getSharedPreferences("mypush", MODE_PRIVATE);
 		SharedPreferences.Editor editor = sp.edit();
 		editor.putString("lastId", "");
@@ -370,7 +399,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		init();
 		initViewPage();
 		initView();
-
+		//showProgress();
 		zoomControls = (ZoomControls) view3.findViewById(R.id.zoomcontrols);
 		zoomControls.setOnZoomInClickListener(new OnClickListener() {
 			public void onClick(View v) {
@@ -435,9 +464,9 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				try {
 					httpClient.execute(getMethod);
 				} catch (ClientProtocolException e) {
-					e.printStackTrace();
+					//e.printStackTrace();
 				} catch (IOException e) {
-					e.printStackTrace();
+					//e.printStackTrace();
 				}
 			}
 		});
@@ -667,6 +696,28 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				Log.i(TAG,str);
 				Alert(getApplicationContext(), str);
 				break;
+			case 101:
+//				new Thread(new Runnable() {  
+//		            public void run() {  
+//		                for (int i = 0; i < 10; i++) {  
+//		                    try {  
+//		                    	m_pDialog.setProgress((i+1)*10);
+//		                        Thread.sleep(100);  
+//		                       
+//		                    } catch (Exception e) {  
+//		                      
+//		                    }  
+//		                }  
+//		            }  
+//		        }).start();  
+//				Message message = new Message();
+//				message.what = this.what;
+//				message.obj=this;
+//				handler2.sendMessage(message);
+				String str2 = (String)msg.obj;
+				TextView tv = (TextView) view3.findViewById(R.id.txtView);
+				tv.setText(Html.fromHtml("<img  src=\"" + str2 + "\"/>", imgGetter, null));
+				break;
 			case 10:
 				MyTask obj = (MyTask)msg.obj;
 				//Log.i(TAG,obj.sheight);
@@ -810,12 +861,18 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		public void run() {
 			Message message = new Message();
 			message.what = this.what;
+			message.obj = this.arg;
 			handler2.sendMessage(message);
 		}
 		private int what=2;
+		private String arg = "";
 		@SuppressWarnings("unused")
-		public MyTask2(int what){
+		public MyTask2(int what,String ...args){
 			this.what = what;
+			if(args.length>0){
+				Log.i(TAG,args[0]);
+				arg=args[0];
+			}
 		}
 	    
 	}
@@ -1238,11 +1295,25 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		m_pDialog = new ProgressDialog(MainActivity.this);
 		m_pDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
 		m_pDialog.setTitle("下载中...");
+		m_pDialog.setMax(100);
 		m_pDialog.setIcon(R.drawable.ic_launcher);
-		m_pDialog.setProgress(0);
+		m_pDialog.setProgress(10);
 
 		m_pDialog.setCancelable(true);
 		m_pDialog.show();
+		new Thread(new Runnable() {  
+            public void run() {  
+                for (int i = 0; i < 10; i++) {  
+                    try {  
+                    	m_pDialog.setProgress((i+1)*10);
+                        Thread.sleep(100);  
+                       
+                    } catch (Exception e) {  
+                      
+                    }  
+                }  
+            }  
+        }).start();  
 	}
 
 	private void addBitMapToImage(String imageName, int j, int i, String height) {
@@ -1259,13 +1330,24 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 		imageView.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
+				Log.i(TAG,"1111");
 				showProgress();
+				Log.i(TAG,"2222");
+	
 				TextView tv = (TextView) view3.findViewById(R.id.txtView);
+				tv.setText("");
+				mViewPager.setCurrentItem(2);
 				String filename = v.getTag().toString().replace("!192", "");
 				lastImg = filename.split("/")[filename.split("/").length - 1];
-				tv.setText(Html.fromHtml("<img  src=\"" + v.getTag().toString().replace("!192", "") + "\"/>", imgGetter, null));
-				mViewPager.setCurrentItem(2);
+				Timer t = new Timer();
+				TimerTask tk= new MyTask2(101,v.getTag().toString().replace("!192", ""));
+				
+				t.schedule(tk, 500);
+				
 
+
+			
+				
 			}
 		});
 	}
