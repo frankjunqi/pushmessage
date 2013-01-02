@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -78,10 +79,15 @@ import android.view.Window;
 
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
+import android.webkit.WebSettings.ZoomDensity;
+import android.webkit.WebView;
+import android.widget.AbsListView;
+import android.widget.AbsListView.OnScrollListener;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
-import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -153,18 +159,19 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	private MapController mMapController;
 	private GeoPoint point;
 	private MyLocationOverlay mLocationOverlay;
-	private ZoomControls zoomControls = null;
+	public ZoomControls zoomControls = null;
 	static long size = 12;
 	public TextView text = null;
 	public static final int DIALOG_DOWNLOAD_PROGRESS = 0;
 	public ProgressDialog mProgressDialog;
 	public int m_count = 0;
 	public ProgressDialog m_pDialog;
+	public WebView webview = null;
 	public SimpleAdapter adapter = null;
 	public ArrayList<HashMap<String, Object>> list = new ArrayList<HashMap<String, Object>>();
 	private ImageFileCache fileCache;
 	public ArrayList<HashMap<String, Object>> weibolist = new ArrayList<HashMap<String, Object>>();
-	private DropDownToRefreshListView listView;
+	public DropDownToRefreshListView listView = null;
 	public SimpleAdapter adapter11 = null;
 
 	public ArrayList<String> list1 = new ArrayList<String>();
@@ -202,7 +209,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				InputStream is = conn.getInputStream();
 				d = Drawable.createFromStream(is, "");
 				is.close();
-				Log.i(TAG, source + d.getIntrinsicWidth() + d.getIntrinsicHeight());
+				//Log.i(TAG, source + d.getIntrinsicWidth() + d.getIntrinsicHeight());
 				d.setBounds(0, 0, d.getIntrinsicWidth(), d.getIntrinsicHeight());
 			} catch (IOException e) {
 				// e.printStackTrace();
@@ -224,7 +231,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 					@SuppressWarnings("deprecation")
 					Drawable drawable = new BitmapDrawable(b);
-					Log.i(TAG, "asdfasdfasdfsadfsdf");
+					//Log.i(TAG, "asdfasdfasdfsadfsdf");
 					d = drawable;
 					m_pDialog.cancel();
 
@@ -316,6 +323,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 				while ((count = input.read(data)) != -1) {
 					total += count;
+
 					publishProgress("" + (int) ((total * 100) / lenghtOfFile));
 					output.write(data, 0, count);
 				}
@@ -341,6 +349,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		}
 	}
 
+	@Override
 	protected void onResume() {
 		super.onResume();
 		String lastId = sp.getString("lastId", "");
@@ -351,6 +360,9 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			editor.putString("lastId", "");
 			editor.commit();
 			String id = lastId;
+			webview.loadDataWithBaseURL(null, "", "text/html", "utf-8", null);
+			TextView tv1 = (TextView) view3.findViewById(R.id.txtView);
+			tv1.setText("");
 
 			mViewPager.setCurrentItem(2);
 			List<BasicNameValuePair> params = new LinkedList<BasicNameValuePair>();
@@ -361,8 +373,10 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			HttpClient httpClient = new DefaultHttpClient();
 			try {
 				HttpResponse response = httpClient.execute(getMethod); // 发起GET请求
-				TextView tv = (TextView) view3.findViewById(R.id.txtView);
-				tv.setText(Html.fromHtml(EntityUtils.toString(response.getEntity(), "utf-8"), imgGetter2, null));
+
+				// Log.i(TAG,EntityUtils.toString(response.getEntity(),
+				// "utf-8"));
+				webview.loadDataWithBaseURL(null, EntityUtils.toString(response.getEntity(), "utf-8"), "text/html", "utf-8", null);
 			} catch (ClientProtocolException e) {
 				// e.printStackTrace();
 			} catch (IOException e) {
@@ -385,7 +399,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	}
 
 	// 连续两次返回退出程序
-	private long exitTime = 0;
+	private long exitTime = (long) 0;
 
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -393,10 +407,11 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			if ((System.currentTimeMillis() - exitTime) > 600) {
 				if (mViewPager.getCurrentItem() > 0) {
 					mViewPager.setCurrentItem(mViewPager.getCurrentItem() - 1);
-				}else{
+				} else {
+					listView.setSelection(1);
 					Toast.makeText(getApplicationContext(), "再按一次退出程序", Toast.LENGTH_SHORT).show();
 				}
-				
+
 				exitTime = System.currentTimeMillis();
 			} else {
 				finish();
@@ -406,7 +421,8 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			return true;
 		}
 		return super.onKeyDown(keyCode, event);
-	} 
+	}
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -418,7 +434,6 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		Drawable drawable = res.getDrawable(R.drawable.bkcolor);
 		this.getWindow().setBackgroundDrawable(drawable);
 
-		// android:theme="@style/test"
 		File file = new File(Environment.getExternalStorageDirectory().getPath() + "/lualu/");
 		if (!file.exists()) {
 			try {
@@ -437,28 +452,15 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		init();
 		initViewPage();
 		initView();
-		// showProgress();
-		zoomControls = (ZoomControls) view3.findViewById(R.id.zoomcontrols);
-		zoomControls.setOnZoomInClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				size = size + 2;
-				TextView tv = (TextView) view3.findViewById(R.id.txtView);
-				tv.setTextSize(size);
-			}
-		});
-		zoomControls.setOnZoomOutClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				size = size - 2;
-				TextView tv = (TextView) view3.findViewById(R.id.txtView);
-				tv.setTextSize(size);
-			}
-		});
-		// Button btnWeibo = (Button) view1.findViewById(R.id.initWeibo);
-		// btnWeibo.setOnClickListener(new OnClickListener() {
-		// public void onClick(View v) {
-		// initSinaWeibo();
-		// }
-		// });
+
+		webview = (WebView) view3.findViewById(R.id.webview);
+		webview.getSettings().setBuiltInZoomControls(true);
+		webview.getSettings().setSupportZoom(true);
+		webview.getSettings().setDefaultZoom(ZoomDensity.CLOSE);
+		webview.getSettings().setJavaScriptEnabled(true);
+		webview.getSettings().setDefaultTextEncodingName("utf-8");
+
+		webview.loadDataWithBaseURL(null, "", "text/html", "utf-8", null);
 
 		Button button1 = (Button) view3.findViewById(R.id.button1);
 		button1.setOnClickListener(new OnClickListener() {
@@ -484,34 +486,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			}
 
 		});
-		// Button button3 = (Button) view1.findViewById(R.id.pushmsg);
-		// button3.setOnClickListener(new OnClickListener() {
-		// public void onClick(View v) {
-		// List<BasicNameValuePair> params = new
-		// LinkedList<BasicNameValuePair>();
-		// SharedPreferences preferences = getSharedPreferences("mypush",
-		// MODE_PRIVATE);
-		// String tagName = preferences.getString("tagName", "");
-		//
-		// String[] sArray = tagName.split(",");
-		// Log.i(TAG, sArray[sArray.length - 1]);
-		// params.add(new BasicNameValuePair("push", sArray[sArray.length -
-		// 1]));
-		// params.add(new BasicNameValuePair("msg", "自推:" +
-		// sp.getString("lastloaction", "")));
-		// String param = URLEncodedUtils.format(params, "UTF-8");
-		// String baseUrl = "http://citsm.sinaapp.com/sg.php";
-		// HttpGet getMethod = new HttpGet(baseUrl + "?" + param);
-		// HttpClient httpClient = new DefaultHttpClient();
-		// try {
-		// httpClient.execute(getMethod);
-		// } catch (ClientProtocolException e) {
-		// // e.printStackTrace();
-		// } catch (IOException e) {
-		// // e.printStackTrace();
-		// }
-		// }
-		// });
+
 		initMap();
 
 		Person mPerson = (Person) getIntent().getSerializableExtra(MyReceiver.SER_KEY);
@@ -521,9 +496,10 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 		listView = (DropDownToRefreshListView) view1.findViewById(R.id.mylistview);
 
-		weibolist = initData();
-
+		initData();
+		//
 		adapter11 = new SimpleAdapter(this, weibolist, R.layout.lv, new String[] { "img", "title" }, new int[] { R.id.img, R.id.title });
+
 		adapter11.setViewBinder(new ViewBinder() {
 			public boolean setViewValue(View view, Object data, String textRepresentation) {
 				if (view instanceof ImageView && data instanceof Drawable) {
@@ -540,27 +516,60 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			}
 		});
 		listView.setAdapter(adapter11);
-
-		listView.setOnRefreshListener(new DropDownToRefreshListView.OnRefreshListener() {
-			public void onRefresh() {
-				new Handler().postDelayed(new Runnable() {
-
-					public void run() {
-						listView.onRefreshComplete();
+		listView.setOnScrollListener(new OnScrollListener() {
+			public void onScrollStateChanged(AbsListView view, int scrollState) {
+				if (scrollState == OnScrollListener.SCROLL_STATE_IDLE) {
+					if (view.getLastVisiblePosition() == view.getCount() - 1) {
+						
+						currentPage++;
+						initData();
+						
 					}
-				}, 1000);
+				}
+			}
+
+			public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+				// TODO Auto-generated method stub
+
 			}
 		});
-	}
 
-	private ArrayList<HashMap<String, Object>> initData() {
+		listView.setOnItemClickListener(new OnItemClickListener() {
+			public void onItemClick(AdapterView<?> arg0, View arg1, int arg2, long arg3) {
+				HashMap<String, Object> map = (HashMap<String, Object>) weibolist.get(arg2 - 1);
+				TextView tv = (TextView) view3.findViewById(R.id.txtView);
+				tv.setText("");
+				webview.loadDataWithBaseURL(null, map.get("title").toString(), "text/html", "utf-8", null);
+				mViewPager.setCurrentItem(2);
+			}
+
+		});
+		listView.setOnRefreshListener(new DropDownToRefreshListView.OnRefreshListener() {
+			public void onRefresh() {
+				initData();
+				// listView.onRefreshComplete();
+				// new Handler().postDelayed(new Runnable() {
+				// public void run() {
+				// listView.onRefreshComplete();
+				// }
+				// }, 1000);
+			}
+		});
+		
+	}
+	public  int currentPage =1;
+	public void initData() {
 
 		String token = sp.getString("token", "");
 		String expires_in = sp.getString("expires_in", "");
+		if (token.equals("")) {
+
+			return;
+		}
 		MainActivity.accessToken = new Oauth2AccessToken(token, expires_in);
 		StatusesAPI st = new StatusesAPI(MainActivity.accessToken);
 
-		st.homeTimeline(Long.parseLong("0"), Long.parseLong("0"), 50, 1, false, WeiboAPI.FEATURE.ALL, false, new RequestListener() {
+		st.homeTimeline(Long.parseLong("0"), Long.parseLong("0"), 50, currentPage, false, WeiboAPI.FEATURE.ALL, false, new RequestListener() {
 			public void onComplete(String arg0) {
 				Message message = new Message();
 				message.what = 900;
@@ -588,7 +597,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		// for(int i = 0; i <= 20; i++){
 		// list.add(new String("张三"+i));
 		// }
-		return weibolist;
+
 	}
 
 	public void Alert(Context context, String msg) {
@@ -605,7 +614,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	public void CallPhone(String phone) {
 		Alert(getApplicationContext(), "CallPhone-" + phone);
 		String phonenum = phone;
-		Log.i("phone", phone);
+		//Log.i("phone", phone);
 		Intent intent = new Intent("android.intent.action.CALL", Uri.parse("tel:" + phonenum));
 		startActivity(intent);
 	}
@@ -637,16 +646,18 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			try {
 				HttpResponse response = httpClient.execute(getMethod);
 				TextView tv = (TextView) view3.findViewById(R.id.txtView);
-				tv.setText(Html.fromHtml(EntityUtils.toString(response.getEntity(), "utf-8"), imgGetter, null));
+				tv.setText("");
+				webview.loadDataWithBaseURL(null, EntityUtils.toString(response.getEntity(), "utf-8"), "text/html", "utf-8", null);
+
 			} catch (ClientProtocolException e) {
-				e.printStackTrace();
+				// e.printStackTrace();
 			} catch (IOException e) {
-				e.printStackTrace();
+				// e.printStackTrace();
 			}
 		}
 		if (method.equals("cmd")) {
 			String action = args.split("_")[0];
-			Log.i("createByParam", action);
+			//Log.i("createByParam", action);
 			if (action == "callphone") {
 				CallPhone(args.split("_")[1]);
 			}
@@ -741,14 +752,14 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			mBitmap = BitmapFactory.decodeStream(is);
 
 		} catch (MalformedURLException e) {
-			e.printStackTrace();
+			// e.printStackTrace();
 		} catch (IOException e) {
-			e.printStackTrace();
+			// e.printStackTrace();
 		}
 		return mBitmap;
 	}
 
-	private void initMap() {
+	public void initMap() {
 
 		mMapView = (MapView) view4.findViewById(R.id.mapView_offlinemap);
 		mMapView.setBuiltInZoomControls(true);
@@ -789,7 +800,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 						getList();
 					}
 				} catch (JSONException e) {
-					e.printStackTrace();
+					// e.printStackTrace();
 				}
 				break;
 			case 2:
@@ -800,7 +811,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 					getList();
 				} catch (JSONException e) {
 
-					e.printStackTrace();
+					// e.printStackTrace();
 				}
 				loadtext.setVisibility(View.GONE);
 				break;
@@ -809,7 +820,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 					String str = (String) msg.obj;
 					// Log.i(TAG,str);
 					JSONArray jarr = new JSONObject(str).getJSONArray("statuses");
-					Log.i(TAG, jarr.length() + "");
+					//Log.i(TAG, jarr.length() + "");
 					for (int i = 0; i < jarr.length(); i++) {
 						HashMap<String, Object> map = new HashMap<String, Object>();
 
@@ -823,7 +834,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 								ruser = robj.getJSONObject("user");
 								rstr = rstr + "<br/><font color='#999999'>&nbsp;&nbsp;&nbsp;&nbsp;"
 										+ (ruser != null ? ruser.getString("screen_name") + robj.getString("text") : "") + "</font>";
-								Log.i(TAG, rstr);
+								//Log.i(TAG, rstr);
 							}
 						} catch (JSONException e) {
 
@@ -836,6 +847,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 						weibolist.add(map);
 					}
 					adapter11.notifyDataSetChanged();
+					listView.onRefreshComplete();
 				} catch (JSONException e) {
 
 				}
@@ -843,7 +855,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				break;
 			case 100:
 				String str = (String) msg.obj;
-				Log.i(TAG, str);
+				//Log.i(TAG, str);
 				Alert(getApplicationContext(), str);
 				break;
 			case 101:
@@ -866,6 +878,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				// handler2.sendMessage(message);
 				String str2 = (String) msg.obj;
 				TextView tv = (TextView) view3.findViewById(R.id.txtView);
+				webview.loadDataWithBaseURL(null, "", "text/html", "utf-8", null);
 				tv.setText(Html.fromHtml("<img  src=\"" + str2 + "\"/>", imgGetter, null));
 				break;
 			case 10:
@@ -930,13 +943,13 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 		case Menu.FIRST + 2:
 			List<BasicNameValuePair> params = new LinkedList<BasicNameValuePair>();
-			SharedPreferences preferences = getSharedPreferences("mypush", MODE_PRIVATE);
-			String tagName = preferences.getString("tagName", "");
+
+			String tagName = sp.getString("tagName", "");
 
 			String[] sArray = tagName.split(",");
-			Log.i(TAG, sArray[sArray.length - 1]);
+			//Log.i(TAG, sArray[sArray.length - 1]);
 			params.add(new BasicNameValuePair("push", sArray[sArray.length - 1]));
-			params.add(new BasicNameValuePair("msg", "自推:" + sp.getString("lastloaction", "")));
+			params.add(new BasicNameValuePair("msg", sArray[sArray.length - 1] + "的自推测试"));
 			String param = URLEncodedUtils.format(params, "UTF-8");
 			String baseUrl = "http://citsm.sinaapp.com/sg.php";
 			HttpGet getMethod = new HttpGet(baseUrl + "?" + param);
@@ -959,7 +972,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	}
 
 	public void getList() throws JSONException {
-		Log.i(TAG, "getList" + current_page);
+		//Log.i(TAG, "getList" + current_page);
 		List<BasicNameValuePair> params = new LinkedList<BasicNameValuePair>();
 		params.add(new BasicNameValuePair("offset", current_page + ""));
 		params.add(new BasicNameValuePair("limit", count + ""));
@@ -982,9 +995,9 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			}
 			addImage(current_page, count);
 		} catch (ClientProtocolException e) {
-			e.printStackTrace();
+			// e.printStackTrace();
 		} catch (IOException e) {
-			e.printStackTrace();
+			// e.printStackTrace();
 		}
 	}
 
@@ -1077,11 +1090,10 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		private int what = 2;
 		private String arg = "";
 
-		@SuppressWarnings("unused")
 		public MyTask2(int what, String... args) {
 			this.what = what;
 			if (args.length > 0) {
-				Log.i(TAG, args[0]);
+				//Log.i(TAG, args[0]);
 				arg = args[0];
 			}
 		}
@@ -1191,7 +1203,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		List<BasicNameValuePair> params = new LinkedList<BasicNameValuePair>();
 		String tagName = sp.getString("tagName", "");
 		String[] sArray = tagName.split(",");
-		Log.i(TAG, sArray[sArray.length - 1]);
+		//Log.i(TAG, sArray[sArray.length - 1]);
 		params.add(new BasicNameValuePair("push", sArray[sArray.length - 1]));
 		params.add(new BasicNameValuePair("msg", str));
 		String param = URLEncodedUtils.format(params, "UTF-8");
@@ -1201,13 +1213,13 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		try {
 			httpClient.execute(getMethod);
 		} catch (ClientProtocolException e) {
-			e.printStackTrace();
+			// e.printStackTrace();
 		} catch (IOException e) {
-			e.printStackTrace();
+			// e.printStackTrace();
 		}
 	}
 
-	private void sendWeibo() {
+	public void sendWeibo() {
 
 		String token = sp.getString("token", "");
 		String expires_in = sp.getString("expires_in", "");
@@ -1245,7 +1257,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				}
 			});
 		} else {
-			Log.i("update", tv.getText().toString());
+			//Log.i("update", tv.getText().toString());
 			api.update(textwibo.getText().toString(), "", "", new RequestListener() {
 				public void onComplete(String arg0) {
 					Message message = new Message();
@@ -1272,7 +1284,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	}
 
 	private void initSinaWeibo() {
-		Log.i(TAG, "initWeibo");
+		//Log.i(TAG, "initWeibo");
 		mWeibo = Weibo.getInstance(CONSUMER_KEY, REDIRECT_URL);
 		mWeibo.authorize(MainActivity.this, new AuthDialogListener());
 
@@ -1304,13 +1316,13 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 							UsersAPI ua = new UsersAPI(MainActivity.accessToken);
 							ua.show(Long.parseLong(uid), new RequestListener() {
 								public void onComplete(String arg0) {
-									Log.i(TAG, arg0);
+									//Log.i(TAG, arg0);
 									try {
 										JSONTokener jsonParser = new JSONTokener(arg0);
 
 										JSONObject person = (JSONObject) jsonParser.nextValue();
 										String strname = person.getString("name");
-										Log.i(TAG, strname);
+										//Log.i(TAG, strname);
 										String[] sArray = ("android,all," + strname).split(",");
 
 										Set<String> tagSet = new HashSet<String>();
@@ -1322,7 +1334,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 											tagSet.add(sTagItme);
 										}
 										JPushInterface.setAliasAndTags(getApplicationContext(), null, tagSet);
-
+										initData();
 										SharedPreferences.Editor editor = sp.edit();
 										editor.putString("tagName", ("android,all," + strname));
 										editor.commit();
@@ -1368,8 +1380,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 	}
 
-	@SuppressWarnings("deprecation")
-	private void initView() {
+	public void initView() {
 		// TextView mImei = (TextView) view1.findViewById(R.id.tv_imei);
 		// String udid = JPushInterface.getUdid(getApplicationContext());
 		// if (null != udid)
@@ -1427,33 +1438,11 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 	}
 
-	public void onClick(View v) {
-
-		// switch (v.getId()) {
-		// case R.id.init:
-		// init();
-		// break;
-		// case R.id.setting:
-		// Intent intent = new Intent(MainActivity.this, PushSetActivity.class);
-		// startActivity(intent);
-		// break;
-		//
-		// case R.id.resumePush:
-		// JPushInterface.resumePush(getApplicationContext());
-		// break;
-		// }
-	}
-
-	private void init() {
+	public void init() {
 		JPushInterface.init(getApplicationContext());
+		JPushInterface.setLatestNotifactionNumber(getApplicationContext(), 10);
 	}
 
-	/***
-	 * 加载更多
-	 * 
-	 * @param current_page
-	 * @param count
-	 */
 	private void addImage(int current_page, int count) {
 		int imagecount = image_filenames.size();
 		for (int i = 0; i < imagecount; i++) {
@@ -1543,12 +1532,13 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 		imageView.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
-				Log.i(TAG, "1111");
-				showProgress();
-				Log.i(TAG, "2222");
 
+				showProgress();
+				webview.loadDataWithBaseURL(null, "", "text/html", "utf-8", null);
 				TextView tv = (TextView) view3.findViewById(R.id.txtView);
 				tv.setText("");
+
+				// webview.setVisibility(View.GONE);
 				mViewPager.setCurrentItem(2);
 				String filename = v.getTag().toString().replace("!192", "");
 				lastImg = filename.split("/")[filename.split("/").length - 1];
@@ -1602,6 +1592,11 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	}
 
 	public void onScroll() {
+
+	}
+
+	public void onClick(View v) {
+		// TODO Auto-generated method stub
 
 	}
 }

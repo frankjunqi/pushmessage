@@ -18,6 +18,7 @@ public class DropDownFreshActivity extends Activity {
 		
 		List<String> list = initData();
 		
+		
 		ArrayAdapter<String> adapter = new ArrayAdapter<String>(DropDownFreshActivity.this, android.R.layout.simple_expandable_list_item_1, list);
 		listView.setAdapter(adapter);	
 		listView.setOnRefreshListener(new DropDownToRefreshListView.OnRefreshListener() {

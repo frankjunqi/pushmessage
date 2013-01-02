@@ -18,12 +18,15 @@
             android:layout_height="wrap_content"
             android:autoLink="all"
             android:gravity="center_horizontal" />
-
-        <ZoomControls
-            android:id="@+id/zoomcontrols"
+        
+         <WebView  
+            android:id="@+id/webview"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
+            android:autoLink="all"
             android:gravity="center_horizontal" />
+
+        
 
         <EditText
             android:id="@+id/editText1"

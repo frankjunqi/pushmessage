@@ -30,6 +30,8 @@
     <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION" />
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
+     <uses-permission android:name="android.permission.MEDIA_BUTTON" />
+  
 
     <!-- Optional for location -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -146,6 +148,7 @@
             android:name="cn.jpush.android.example.MyReceiver"
             android:enabled="true" >
             <intent-filter>
+                
                 <action android:name="cn.jpush.android.intent.REGISTRATION" />
                 <!-- Required  用户注册SDK的权限 -->
                 <action android:name="cn.jpush.android.intent.MESSAGE_RECEIVED" />
@@ -158,6 +161,8 @@
             </intent-filter>
         </receiver>
 
+          
+        
         <!-- Required  . Enable it you can get statistics data with channel -->
         <meta-data
             android:name="JPUSH_CHANNEL"
