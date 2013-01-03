@@ -560,46 +560,69 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		
 	}
 	public  int currentPage =1;
+	protected static final int GUIUPDATEIDENTIFIER = 0x101;   
+	Thread myRefreshThread = null;   
+	Message wbmessage = new Message();
+	Handler myHandler = new Handler() {  
+        public void handleMessage(Message msg) {   
+             switch (msg.what) {   
+                  case MainActivity.GUIUPDATEIDENTIFIER:   
+      		    	String token = sp.getString("token", "");
+    				String expires_in = sp.getString("expires_in", "");
+    				if (token.equals("")) {
+    					return;
+    				}
+    				MainActivity.accessToken = new Oauth2AccessToken(token, expires_in);
+    				StatusesAPI st = new StatusesAPI(MainActivity.accessToken);
+    				
+    				
+    				st.homeTimeline(Long.parseLong("0"), Long.parseLong("0"), 50, currentPage, false, WeiboAPI.FEATURE.ALL, false, new RequestListener() {
+    					public void onComplete(String arg0) {
+    						
+    						wbmessage.what = 900;
+    						wbmessage.obj = arg0;
+    						
+    						view1.postDelayed(new Runnable() { 
+    	    					public void run() { 
+    	    						handler2.sendMessage(wbmessage);
+    	    					} 
+    	    				}, 1000); 
+
+    					}
+
+    					public void onError(WeiboException arg0) {
+    						Message message = new Message();
+    						message.what = 100;
+    						message.obj = "获取-发送错误-" + arg0.getMessage();
+    						handler2.sendMessage(message);
+
+    					}
+
+    					public void onIOException(IOException arg0) {
+    						Message message = new Message();
+    						message.what = 100;
+    						message.obj = "获取-发送异常-" + arg0.getMessage();
+    						handler2.sendMessage(message);
+    					}
+    				});
+                       break;   
+             }   
+             super.handleMessage(msg);   
+        }   
+   };
+   class myThread implements Runnable {   
+       public void run() {  
+    	   while (!Thread.currentThread().isInterrupted()) {    
+			Message message = new Message();   
+			message.what = MainActivity.GUIUPDATEIDENTIFIER;   
+			   
+			MainActivity.this.myHandler.sendMessage(message);   
+			Thread.currentThread().interrupt();  
+    	   }
+       }   
+  }   
 	public void initData() {
-
-		String token = sp.getString("token", "");
-		String expires_in = sp.getString("expires_in", "");
-		if (token.equals("")) {
-
-			return;
-		}
-		MainActivity.accessToken = new Oauth2AccessToken(token, expires_in);
-		StatusesAPI st = new StatusesAPI(MainActivity.accessToken);
-
-		st.homeTimeline(Long.parseLong("0"), Long.parseLong("0"), 50, currentPage, false, WeiboAPI.FEATURE.ALL, false, new RequestListener() {
-			public void onComplete(String arg0) {
-				Message message = new Message();
-				message.what = 900;
-				message.obj = arg0;
-				handler2.sendMessage(message);
-
-			}
-
-			public void onError(WeiboException arg0) {
-				Message message = new Message();
-				message.what = 100;
-				message.obj = "获取-发送错误-" + arg0.getMessage();
-				handler2.sendMessage(message);
-
-			}
-
-			public void onIOException(IOException arg0) {
-				Message message = new Message();
-				message.what = 100;
-				message.obj = "获取-发送异常-" + arg0.getMessage();
-				handler2.sendMessage(message);
-			}
-		});
-
-		// for(int i = 0; i <= 20; i++){
-		// list.add(new String("张三"+i));
-		// }
-
+		new Thread(new myThread()).start();  
 	}
 
 	public void Alert(Context context, String msg) {
@@ -610,7 +633,6 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		iv.setImageResource(R.drawable.ic_launcher);
 		tsv.addView(iv, 0);
 		toast.show();
-
 	}
 
 	public void CallPhone(String phone) {
