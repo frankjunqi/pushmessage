@@ -35,6 +35,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -423,6 +424,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		return super.onKeyDown(keyCode, event);
 	}
 
+	@SuppressLint("SetJavaScriptEnabled")
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -459,7 +461,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		webview.getSettings().setDefaultZoom(ZoomDensity.CLOSE);
 		webview.getSettings().setJavaScriptEnabled(true);
 		webview.getSettings().setDefaultTextEncodingName("utf-8");
-
+		webview.setBackgroundColor(0);
 		webview.loadDataWithBaseURL(null, "", "text/html", "utf-8", null);
 
 		Button button1 = (Button) view3.findViewById(R.id.button1);
