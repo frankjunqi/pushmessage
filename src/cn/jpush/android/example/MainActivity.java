@@ -210,7 +210,8 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				InputStream is = conn.getInputStream();
 				d = Drawable.createFromStream(is, "");
 				is.close();
-				//Log.i(TAG, source + d.getIntrinsicWidth() + d.getIntrinsicHeight());
+				// Log.i(TAG, source + d.getIntrinsicWidth() +
+				// d.getIntrinsicHeight());
 				d.setBounds(0, 0, d.getIntrinsicWidth(), d.getIntrinsicHeight());
 			} catch (IOException e) {
 				// e.printStackTrace();
@@ -232,7 +233,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 					@SuppressWarnings("deprecation")
 					Drawable drawable = new BitmapDrawable(b);
-					//Log.i(TAG, "asdfasdfasdfsadfsdf");
+					// Log.i(TAG, "asdfasdfasdfsadfsdf");
 					d = drawable;
 					m_pDialog.cancel();
 
@@ -352,6 +353,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 	@Override
 	protected void onResume() {
+		Log.i(TAG,"onResume");
 		super.onResume();
 		String lastId = sp.getString("lastId", "");
 		String lastCmd = sp.getString("lastCmd", "");
@@ -427,11 +429,12 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	@SuppressLint("SetJavaScriptEnabled")
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
+	
 		super.onCreate(savedInstanceState);
 		this.requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
 		setContentView(R.layout.main);
 		getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.title);
-
+		Log.i(TAG,"onCreate");
 		Resources res = getResources();
 		Drawable drawable = res.getDrawable(R.drawable.bkcolor);
 		this.getWindow().setBackgroundDrawable(drawable);
@@ -497,11 +500,8 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		}
 
 		listView = (DropDownToRefreshListView) view1.findViewById(R.id.mylistview);
-
 		initData();
-		//
 		adapter11 = new SimpleAdapter(this, weibolist, R.layout.lv, new String[] { "img", "title" }, new int[] { R.id.img, R.id.title });
-
 		adapter11.setViewBinder(new ViewBinder() {
 			public boolean setViewValue(View view, Object data, String textRepresentation) {
 				if (view instanceof ImageView && data instanceof Drawable) {
@@ -522,10 +522,10 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			public void onScrollStateChanged(AbsListView view, int scrollState) {
 				if (scrollState == OnScrollListener.SCROLL_STATE_IDLE) {
 					if (view.getLastVisiblePosition() == view.getCount() - 1) {
-						
+
 						currentPage++;
 						initData();
-						
+
 					}
 				}
 			}
@@ -549,80 +549,84 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		listView.setOnRefreshListener(new DropDownToRefreshListView.OnRefreshListener() {
 			public void onRefresh() {
 				initData();
-				// listView.onRefreshComplete();
-				// new Handler().postDelayed(new Runnable() {
-				// public void run() {
-				// listView.onRefreshComplete();
-				// }
-				// }, 1000);
 			}
 		});
-		
+
 	}
-	public  int currentPage =1;
-	protected static final int GUIUPDATEIDENTIFIER = 0x101;   
-	Thread myRefreshThread = null;   
-	Message wbmessage = new Message();
-	Handler myHandler = new Handler() {  
-        public void handleMessage(Message msg) {   
-             switch (msg.what) {   
-                  case MainActivity.GUIUPDATEIDENTIFIER:   
-      		    	String token = sp.getString("token", "");
-    				String expires_in = sp.getString("expires_in", "");
-    				if (token.equals("")) {
-    					return;
-    				}
-    				MainActivity.accessToken = new Oauth2AccessToken(token, expires_in);
-    				StatusesAPI st = new StatusesAPI(MainActivity.accessToken);
-    				
-    				
-    				st.homeTimeline(Long.parseLong("0"), Long.parseLong("0"), 50, currentPage, false, WeiboAPI.FEATURE.ALL, false, new RequestListener() {
-    					public void onComplete(String arg0) {
-    						
-    						wbmessage.what = 900;
-    						wbmessage.obj = arg0;
-    						
-    						view1.postDelayed(new Runnable() { 
-    	    					public void run() { 
-    	    						handler2.sendMessage(wbmessage);
-    	    					} 
-    	    				}, 1000); 
 
-    					}
+	public int currentPage = 1;
+	protected static final int GUIUPDATEIDENTIFIER = 0x101;
+	Thread myRefreshThread = null;
+	Message wbmessage = null;
+	Handler myHandler = new Handler() {
+		public void handleMessage(Message msg) {
+			switch (msg.what) {
+			case MainActivity.GUIUPDATEIDENTIFIER:
+				String token = sp.getString("token", "");
+				String expires_in = sp.getString("expires_in", "");
+				if (token.equals("")) {
+					return;
+				}
+				MainActivity.accessToken = new Oauth2AccessToken(token, expires_in);
+				StatusesAPI st = new StatusesAPI(MainActivity.accessToken);
 
-    					public void onError(WeiboException arg0) {
-    						Message message = new Message();
-    						message.what = 100;
-    						message.obj = "获取-发送错误-" + arg0.getMessage();
-    						handler2.sendMessage(message);
+				st.homeTimeline(Long.parseLong("0"), Long.parseLong("0"), 20, currentPage, false, WeiboAPI.FEATURE.ALL, false, new RequestListener() {
+					public void onComplete(String arg0) {
+						wbmessage =  new Message();
+						wbmessage.what = 900;
+						wbmessage.obj = arg0;
+						if(currentPage==1){
+							view1.postDelayed(new Runnable() {
+								public void run() {
+									handler2.sendMessage(wbmessage);
+									wbmessage=null;
+								}
+							}, 1000);
+						}else{
+							
+							handler2.sendMessage(wbmessage);
+							wbmessage=null;
+						}
+						
 
-    					}
+					}
 
-    					public void onIOException(IOException arg0) {
-    						Message message = new Message();
-    						message.what = 100;
-    						message.obj = "获取-发送异常-" + arg0.getMessage();
-    						handler2.sendMessage(message);
-    					}
-    				});
-                       break;   
-             }   
-             super.handleMessage(msg);   
-        }   
-   };
-   class myThread implements Runnable {   
-       public void run() {  
-    	   while (!Thread.currentThread().isInterrupted()) {    
-			Message message = new Message();   
-			message.what = MainActivity.GUIUPDATEIDENTIFIER;   
-			   
-			MainActivity.this.myHandler.sendMessage(message);   
-			Thread.currentThread().interrupt();  
-    	   }
-       }   
-  }   
+					public void onError(WeiboException arg0) {
+						Message message = new Message();
+						message.what = 100;
+						message.obj = "获取-发送错误-" + arg0.getMessage();
+						handler2.sendMessage(message);
+
+					}
+
+					public void onIOException(IOException arg0) {
+						Message message = new Message();
+						message.what = 100;
+						message.obj = "获取-发送异常-" + arg0.getMessage();
+						handler2.sendMessage(message);
+					}
+				});
+				break;
+			}
+			super.handleMessage(msg);
+		}
+	};
+
+	class myThread implements Runnable {
+		public void run() {
+			while (!Thread.currentThread().isInterrupted()) {
+				Message message = new Message();
+				message.what = MainActivity.GUIUPDATEIDENTIFIER;
+
+				MainActivity.this.myHandler.sendMessage(message);
+				Thread.currentThread().interrupt();
+			}
+		}
+	}
+
 	public void initData() {
-		new Thread(new myThread()).start();  
+		listView.onRefreshBegin();
+		new Thread(new myThread()).start();
 	}
 
 	public void Alert(Context context, String msg) {
@@ -638,7 +642,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	public void CallPhone(String phone) {
 		Alert(getApplicationContext(), "CallPhone-" + phone);
 		String phonenum = phone;
-		//Log.i("phone", phone);
+		// Log.i("phone", phone);
 		Intent intent = new Intent("android.intent.action.CALL", Uri.parse("tel:" + phonenum));
 		startActivity(intent);
 	}
@@ -657,6 +661,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	}
 
 	public void createByParam(Person mPerson) {
+		Log.i(TAG,"createByParam");
 		String method = mPerson.getMethod();
 		String args = mPerson.getArgs();
 		if (method.equals("id")) {
@@ -681,7 +686,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		}
 		if (method.equals("cmd")) {
 			String action = args.split("_")[0];
-			//Log.i("createByParam", action);
+			// Log.i("createByParam", action);
 			if (action == "callphone") {
 				CallPhone(args.split("_")[1]);
 			}
@@ -842,12 +847,9 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			case 900:
 				try {
 					String str = (String) msg.obj;
-					// Log.i(TAG,str);
 					JSONArray jarr = new JSONObject(str).getJSONArray("statuses");
-					//Log.i(TAG, jarr.length() + "");
 					for (int i = 0; i < jarr.length(); i++) {
 						HashMap<String, Object> map = new HashMap<String, Object>();
-
 						JSONObject jobj = (JSONObject) jarr.opt(i);
 						JSONObject uobj = jobj.getJSONObject("user");
 						String rstr = uobj.getString("screen_name") + ":" + jobj.getString("text");
@@ -858,13 +860,12 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 								ruser = robj.getJSONObject("user");
 								rstr = rstr + "<br/><font color='#999999'>&nbsp;&nbsp;&nbsp;&nbsp;"
 										+ (ruser != null ? ruser.getString("screen_name") + robj.getString("text") : "") + "</font>";
-								//Log.i(TAG, rstr);
+								// Log.i(TAG, rstr);
 							}
 						} catch (JSONException e) {
 
 						}
 						map.put("title", rstr + "<br/><br/>来自:<font color='#EA8B2F' size='1'>" + jobj.getString("source") + "</font>");
-
 						@SuppressWarnings("deprecation")
 						Drawable drawable = new BitmapDrawable(getBitmap(uobj.getString("profile_image_url")));
 						map.put("img", drawable);
@@ -879,7 +880,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				break;
 			case 100:
 				String str = (String) msg.obj;
-				//Log.i(TAG, str);
+				// Log.i(TAG, str);
 				Alert(getApplicationContext(), str);
 				break;
 			case 101:
@@ -971,7 +972,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 			String tagName = sp.getString("tagName", "");
 
 			String[] sArray = tagName.split(",");
-			//Log.i(TAG, sArray[sArray.length - 1]);
+			// Log.i(TAG, sArray[sArray.length - 1]);
 			params.add(new BasicNameValuePair("push", sArray[sArray.length - 1]));
 			params.add(new BasicNameValuePair("msg", sArray[sArray.length - 1] + "的自推测试"));
 			String param = URLEncodedUtils.format(params, "UTF-8");
@@ -996,7 +997,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	}
 
 	public void getList() throws JSONException {
-		//Log.i(TAG, "getList" + current_page);
+		// Log.i(TAG, "getList" + current_page);
 		List<BasicNameValuePair> params = new LinkedList<BasicNameValuePair>();
 		params.add(new BasicNameValuePair("offset", current_page + ""));
 		params.add(new BasicNameValuePair("limit", count + ""));
@@ -1117,7 +1118,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		public MyTask2(int what, String... args) {
 			this.what = what;
 			if (args.length > 0) {
-				//Log.i(TAG, args[0]);
+				// Log.i(TAG, args[0]);
 				arg = args[0];
 			}
 		}
@@ -1227,7 +1228,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 		List<BasicNameValuePair> params = new LinkedList<BasicNameValuePair>();
 		String tagName = sp.getString("tagName", "");
 		String[] sArray = tagName.split(",");
-		//Log.i(TAG, sArray[sArray.length - 1]);
+		// Log.i(TAG, sArray[sArray.length - 1]);
 		params.add(new BasicNameValuePair("push", sArray[sArray.length - 1]));
 		params.add(new BasicNameValuePair("msg", str));
 		String param = URLEncodedUtils.format(params, "UTF-8");
@@ -1281,7 +1282,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 				}
 			});
 		} else {
-			//Log.i("update", tv.getText().toString());
+			// Log.i("update", tv.getText().toString());
 			api.update(textwibo.getText().toString(), "", "", new RequestListener() {
 				public void onComplete(String arg0) {
 					Message message = new Message();
@@ -1308,7 +1309,7 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 	}
 
 	private void initSinaWeibo() {
-		//Log.i(TAG, "initWeibo");
+		// Log.i(TAG, "initWeibo");
 		mWeibo = Weibo.getInstance(CONSUMER_KEY, REDIRECT_URL);
 		mWeibo.authorize(MainActivity.this, new AuthDialogListener());
 
@@ -1328,8 +1329,6 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 
 				AccessTokenKeeper.keepAccessToken(MainActivity.this, accessToken);
 
-				// TextView mweibo = (TextView) findViewById(R.id.weibo);
-				// mweibo.setText("token: " + token);
 				AccountAPI aca = new AccountAPI(MainActivity.accessToken);
 				aca.getUid(new RequestListener() {
 					public void onComplete(String arg0) {
@@ -1340,13 +1339,13 @@ public class MainActivity extends MapActivity implements OnClickListener, LazySc
 							UsersAPI ua = new UsersAPI(MainActivity.accessToken);
 							ua.show(Long.parseLong(uid), new RequestListener() {
 								public void onComplete(String arg0) {
-									//Log.i(TAG, arg0);
+									// Log.i(TAG, arg0);
 									try {
 										JSONTokener jsonParser = new JSONTokener(arg0);
 
 										JSONObject person = (JSONObject) jsonParser.nextValue();
 										String strname = person.getString("name");
-										//Log.i(TAG, strname);
+										// Log.i(TAG, strname);
 										String[] sArray = ("android,all," + strname).split(",");
 
 										Set<String> tagSet = new HashSet<String>();
